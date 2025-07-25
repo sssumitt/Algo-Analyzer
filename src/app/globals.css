@@ -1,24 +1,24 @@
-/* Hide scrollbars on body and html globally */
 html, body {
-  scrollbar-width: none;         /* Firefox */
-  -ms-overflow-style: none;      /* IE 10+ */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overflow-y: scroll;
-  background-color: #05060a;
+  background: #05060a;           /* base color */
 }
 
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
-  display: none;                 /* Chrome, Safari */
+  display: none;
 }
 
-/* app/globals.css */
+/* Gradient overlay with same base color */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
     radial-gradient(circle at 30% 30%, rgba(139,92,246,.25), transparent 60%),
-    radial-gradient(circle at 70% 70%, rgba(236,72,153,.25), transparent 60%);
+    radial-gradient(circle at 70% 70%, rgba(236,72,153,.25), transparent 60%),
+    #05060a;                     /* base color layer */
   pointer-events: none;
   z-index: -1;
 }

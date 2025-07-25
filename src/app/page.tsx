@@ -5,16 +5,20 @@ import { FeaturesSection } from './sections/FeatureSection'
 import { HowItWorksSection } from './sections/HowItWorksSection'
 import { DashboardPreview } from './sections/DashboardPreview'
 import { FinalCTA } from './sections/FinalCTA'
-import { Footer } from './components/footer'
+import { Footer } from './components/Footer'
+import { Navbar } from './components/Navbar'
+
 
 export default function LandingPage() {
   return (
     <>
+      <Navbar/>
       <Hero />
       <HowItWorksSection />
       <FeaturesSection />
-      <DashboardPreview />
+      {/* <DashboardPreview /> */}
       <FinalCTA />
+      <Footer />
     </>
   )
 }

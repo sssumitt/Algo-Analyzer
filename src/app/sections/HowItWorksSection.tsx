@@ -15,6 +15,7 @@ interface StepProps {
 function Step({ number, title, desc }: StepProps) {
   return (
     <MotionBox
+      pos="relative" 
       p={6}
       rounded="lg"
       bg="rgba(255,255,255,0.04)"
