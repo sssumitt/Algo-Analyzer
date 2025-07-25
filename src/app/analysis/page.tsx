@@ -1,9 +1,9 @@
 'use client'
 import { Box } from '@chakra-ui/react'
-import { AnalyticsSection } from '../../sections/AnalyticsSection'
-import { MemoryGraphSection } from '../../sections/MemoryGraphSection'
-import { Navbar } from '../../components/Navbar'
-import { Footer } from '../../components/Footer'
+import { AnalyticsSection } from '../sections/AnalyticsSection'
+import { MemoryGraphSection } from '../sections/MemoryGraphSection'
+import { Navbar } from '../components/Navbar'
+import { Footer } from '../components/Footer'
 
 
 export default function LandingPage() {
