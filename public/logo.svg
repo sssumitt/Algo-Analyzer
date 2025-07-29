@@ -1,0 +1,18 @@
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer diamond -->
+  <path d="M32 8 L56 32 L32 56 L8 32 Z" stroke="url(#grad)" stroke-width="4" stroke-linejoin="round" />
+
+  <!-- Inner network -->
+  <path d="M32 24 L40 32 L32 40 L24 32 Z" stroke="url(#grad)" stroke-width="3" stroke-linejoin="round" />
+  <circle cx="32" cy="24" r="3" fill="url(#grad)" />
+  <circle cx="40" cy="32" r="3" fill="url(#grad)" />
+  <circle cx="32" cy="40" r="3" fill="url(#grad)" />
+  <circle cx="24" cy="32" r="3" fill="url(#grad)" />
+</svg>

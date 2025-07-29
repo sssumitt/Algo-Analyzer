@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// ───────────────────────── EXISTING MODEL ────────────────────────────
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String?   @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  problems     Problem[]
+}
+
+/// *
+///  * One row per unique URL a user analysed.
+///  * ▸ Composite uniqueness ⟹ same user cannot save the same URL twice.
+///  * ▸ domain + keyAlgorithm stored here so it’s cheap to group by topic.
+model Problem {
+  id           String     @id @default(uuid())
+  url          String
+  name         String
+  domain       String
+  keyAlgorithm String
+  difficulty   String
+  createdAt    DateTime   @default(now())
+  userId       String
+  analyses     Analysis[]
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, url])
+  @@index([domain, keyAlgorithm])
+}
+
+/// *
+///  * Snapshot of every Gemini run.  History = analytics / diff later.
+model Analysis {
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now())
+  /// denormalised Gemini payload
+  pseudoCode Json
+  time       String
+  space      String
+  tags       String[]
+  problemId  String
+  problem    Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
