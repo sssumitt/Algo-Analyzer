@@ -43,46 +43,60 @@ export default async function RepositoryHome() {
 
   return (
     <Box px={{ base: 4, md: 8 }} py={8} maxW="6xl" mx="auto">
-      <Heading size="lg" mb={6} color="white">
-        Domains
+      <Heading size="xl" mb={8} color="whiteAlpha.900" fontWeight="extrabold">
+        Your Repository
       </Heading>
 
       {topics.length === 0 ? (
-        <Text color="whiteAlpha.600">No problems saved yet.</Text>
+        <Text color="whiteAlpha.600" fontSize="lg" mt={4}>
+          No problems saved yet. Start solving and add them here!
+        </Text>
       ) : (
         <Accordion allowMultiple>
           {topics.map(({ domain, algorithms }) => (
             <AccordionItem key={domain} border="none" mb={4}>
               {/* ── DOMAIN CARD ───────────────────────────────────── */}
               <AccordionButton
-                px={5}
-                py={4}                          /* bigger padding */
-                bg="gray.800"
-                _hover={{ bg: 'gray.700' }}
-                _expanded={{ bg: 'gray.700' }}
+                px={6}
+                py={5}
+                bg="gray.900" // Darker background for subtlety
+                _hover={{ bg: 'gray.800', transform: 'translateY(-2px)' }} // Subtle lift on hover
+                _expanded={{ bg: 'gray.800', transform: 'translateY(-2px)' }}
                 border="1px"
-                borderColor="whiteAlpha.200"
-                rounded="md"
+                borderColor="whiteAlpha.100" // Very subtle border
+                rounded="lg"
+                transition="all 0.2s ease-in-out" // Smooth transition for hover effects
               >
                 <Flex flex="1" align="center" justify="space-between">
-                  <Text fontSize="lg" color="white" fontWeight="medium">  {/* larger text */}
+                  <Text
+                    fontSize="xl"
+                    fontWeight="bold"
+                    // Apply gradient if possible, otherwise use a suitable color
+                    // For a true gradient on text, you'd typically need a custom component or more CSS
+                    color="whiteAlpha.900"
+                  >
                     {domain}
                   </Text>
                   <HStack spacing={5}>
-                    {/* <Text fontSize="sm" color="whiteAlpha.600">
+                    {/* These counts are commented out to maintain minimalism */}
+                    {/* <Text fontSize="sm" color="whiteAlpha.500">
                       {algorithms.length} algo{algorithms.length > 1 && 's'}
                     </Text> */}
-                    {/* <Text fontSize="sm" color="whiteAlpha.600">
+                    {/* <Text fontSize="sm" color="whiteAlpha.500">
                       {algorithms.reduce((s, a) => s + a.count, 0)} solved
                     </Text> */}
                   </HStack>
                 </Flex>
-                <AccordionIcon color="whiteAlpha.600" />
+                <AccordionIcon color="whiteAlpha.500" boxSize={6} />
               </AccordionButton>
 
               {/* ── ALGO LIST ─────────────────────────────────────── */}
-              <AccordionPanel px={0} pt={3} pb={2}>
-                <Box borderLeft="3px" borderColor="whiteAlpha.300" pl={10}> {/* thicker line + wider indent */}
+              <AccordionPanel px={0} pt={4} pb={2}>
+                <Box
+                  borderLeft="3px"
+                  borderColor="linear-gradient(to bottom, #8A2BE2, #00CED1)" // Attempting gradient border, but might need custom CSS
+                  pl={10} // Slightly less indent for minimalism
+                >
                   <VStack spacing={3} align="stretch">
                     {algorithms.map(({ algo, count }) => (
                       <Box
@@ -94,18 +108,18 @@ export default async function RepositoryHome() {
                         <Flex
                           align="center"
                           justify="space-between"
-                          bg="gray.800"
+                          bg="gray.800" // Slightly lighter than domain card for distinction
                           border="1px"
-                          borderColor="whiteAlpha.200"
+                          borderColor="whiteAlpha.50" // Even more subtle border
                           rounded="md"
                           px={4}
-                          py={3}               /* smaller padding */
-                          _hover={{ bg: 'gray.700' }}
-                          transition="background 0.2s"
+                          py={3}
+                          _hover={{ bg: 'gray.700', transform: 'translateY(-1px)' }} // Subtle lift on hover
+                          transition="all 0.2s ease-in-out"
                         >
-                          <Text color="white">{algo}</Text>
-                          <Text fontSize="sm" color="whiteAlpha.600">
-                            {count} Sovled
+                          <Text color="whiteAlpha.800" fontSize="md">{algo}</Text>
+                          <Text fontSize="sm" color="whiteAlpha.400">
+                            {count} Solved
                           </Text>
                         </Flex>
                       </Box>

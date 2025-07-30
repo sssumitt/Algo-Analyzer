@@ -21,7 +21,7 @@ export default async function ProtectedLayout({
 
   return (
     <Flex direction="column" minH="100vh">
-      <NavbarAuth userName={userName} />
+      <NavbarAuth user={userName} />
       <Box as="main" flex="1" px={4} py={6}>
         {children}
       </Box>

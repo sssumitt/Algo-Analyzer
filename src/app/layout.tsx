@@ -19,12 +19,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-[#0e0f14] text-white">
+      <body className='min-h-[100vh]'>
         <EmotionRegistry>
           <Providers>
-            <main className="min-h-screen flex flex-col">
               {children}
-            </main>
           </Providers>
         </EmotionRegistry>
     

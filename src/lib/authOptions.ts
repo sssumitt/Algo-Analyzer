@@ -1,24 +1,20 @@
-// src/lib/authOptions.ts
-import type { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+// src/app/api/auth/[...nextauth]/route.ts
+
+import NextAuth, { AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { prisma } from '@/lib/prisma';
+import { nanoid } from 'nanoid';
 
-/** Extend the default session type so `session.user.id` is typed */
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id?: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-}
+const prisma = new PrismaClient();
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -26,41 +22,108 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials) return null;
+        if (!credentials?.username || !credentials.password) {
+          throw new Error('Missing credentials');
+        }
 
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
         });
-        if (!user) return null;
 
-        const isValid = await bcrypt.compare(
+        if (!user || !user.passwordHash) {
+          throw new Error('No user found');
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(
           credentials.password,
           user.passwordHash,
         );
-        return isValid ? { id: user.id, name: user.username } : null;
-      },
-    }),
 
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        if (!isPasswordCorrect) {
+          throw new Error('Invalid password');
+        }
+
+        return user;
+      },
     }),
   ],
 
-  session: { strategy: 'jwt' },
-  pages: { signIn: '/' },
-  secret: process.env.NEXTAUTH_SECRET,
-
+  // Callbacks handle the custom logic
   callbacks: {
-    // ① Put DB id onto the JWT (sub claim)
+    async signIn({ user, account }) {
+      // Logic for Google OAuth provider
+      if (account?.provider === 'google') {
+        if (!user.email) {
+          throw new Error('No email found from Google provider');
+        }
+
+        try {
+          // Check if a user with this email already exists
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+          });
+
+          if (existingUser) {
+            return true; // User exists, allow sign-in
+          }
+
+          // If user does not exist, create a new one
+          const username = user.email.split('@')[0] + '-' + nanoid(4); // e.g., 'john.doe-x4f6'
+          
+          await prisma.user.create({
+            data: {
+              email: user.email,
+              username: username,
+              // Create a placeholder hash for the required password field
+              passwordHash: await bcrypt.hash(nanoid(), 10),
+            },
+          });
+
+          return true; // New user created, allow sign-in
+        } catch (error) {
+          console.error('Error during Google sign-in:', error);
+          return false; // Prevent sign-in on error
+        }
+      }
+
+      // Logic for other providers (like credentials)
+      return true;
+    },
+
     async jwt({ token, user }) {
-      if (user) token.sub = user.id as string;
+      // Find the user in the database to get their ID and username
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          email: token.email!, // token.email is reliable here
+        },
+      });
+
+      if (dbUser) {
+        token.id = dbUser.id;
+        token.username = dbUser.username;
+      }
       return token;
     },
-    // ② Expose it on the session object
+
     async session({ session, token }) {
-      if (session.user && token.sub) session.user.id = token.sub as string;
+      // Add the custom properties from the token to the session object
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.username = token.username as string;
+      }
       return session;
     },
   },
+
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: '/signup',
+  },
 };
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
