@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
+// Assuming CodeWindow is in this path
 import { CodeWindow } from '@/app/components/CodeWindow';
 
 // --- Types and Interfaces ---
@@ -117,7 +118,6 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
 
 /**
  * A styled section to display the analysis results.
- * This component has been updated to be responsive.
  */
 function ResultSection({ pseudoCode, results }: ResultSectionProps) {
   return (
@@ -128,7 +128,6 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
           {results.map((result) => (
             <VStack key={result.label} align="flex-start" spacing={1}>
               <Text fontSize="md" color="gray.400">{result.label}</Text>
-              {/* FIX 1: Added wordBreak to prevent long, unbreakable strings from overflowing. */}
               <Text fontWeight="bold" fontSize="xl" whiteSpace="pre-wrap" color="whiteAlpha.900" wordBreak="break-word">
                 {result.value}
               </Text>
@@ -139,7 +138,7 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
       <Divider borderColor="gray.700" />
       <Box>
         <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">Pseudocode</Heading>
-        {/* FIX 2: Wrapped CodeWindow in a Box that allows horizontal scrolling on overflow. */}
+        {/* This inner Box with overflowX is still correct. It ensures the CodeWindow can scroll. */}
         <Box overflowX="auto">
           <CodeWindow lines={pseudoCode} />
         </Box>
@@ -214,7 +213,8 @@ export default function DashboardPage() {
           <GridItem as="aside" position={{ base: 'static', lg: 'sticky' }} top="24px">
             <UploadQuestionForm onSubmit={runAnalysis} isLoading={isLoading} />
           </GridItem>
-          <GridItem as="main">
+          {/* THE FIX IS HERE: `overflowX="hidden"` is added to the main GridItem. */}
+          <GridItem as="main" overflowX="hidden">
             <Box
               p={{ base: 6, md: 10 }}
               bg="#1C1C1E"
