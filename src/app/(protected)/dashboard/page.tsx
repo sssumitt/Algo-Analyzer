@@ -117,6 +117,7 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
 
 /**
  * A styled section to display the analysis results.
+ * This component has been updated to be responsive.
  */
 function ResultSection({ pseudoCode, results }: ResultSectionProps) {
   return (
@@ -127,7 +128,10 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
           {results.map((result) => (
             <VStack key={result.label} align="flex-start" spacing={1}>
               <Text fontSize="md" color="gray.400">{result.label}</Text>
-              <Text fontWeight="bold" fontSize="xl" whiteSpace="pre-wrap" color="whiteAlpha.900">{result.value}</Text>
+              {/* FIX 1: Added wordBreak to prevent long, unbreakable strings from overflowing. */}
+              <Text fontWeight="bold" fontSize="xl" whiteSpace="pre-wrap" color="whiteAlpha.900" wordBreak="break-word">
+                {result.value}
+              </Text>
             </VStack>
           ))}
         </SimpleGrid>
@@ -135,12 +139,15 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
       <Divider borderColor="gray.700" />
       <Box>
         <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">Pseudocode</Heading>
-        {/* Replace the old pseudoCode Box with CodeWindow */}
-        <CodeWindow lines={pseudoCode} />
+        {/* FIX 2: Wrapped CodeWindow in a Box that allows horizontal scrolling on overflow. */}
+        <Box overflowX="auto">
+          <CodeWindow lines={pseudoCode} />
+        </Box>
       </Box>
     </VStack>
   );
 }
+
 
 // --- Main Dashboard Page ---
 

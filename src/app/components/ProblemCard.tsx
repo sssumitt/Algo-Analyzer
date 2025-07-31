@@ -18,10 +18,12 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react';
 import { Clock, Zap, Code, ExternalLink, MemoryStick } from 'lucide-react';
 import { CodeWindow } from './CodeWindow'; // Import CodeWindow component
+
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -86,26 +88,32 @@ export default function ProblemCard({
       </Flex>
 
        {/* Buttons for opening problem and showing pseudo code */}
-     <Flex gap={1} align="center" mb={3}>
-      <IconButton
-        variant="ghost"
-        size="sm"
-        colorScheme="purple"
-        icon={<Code size={"25"}/>}
-        onClick={onOpen}
-        aria-label="Show Pseudo Code"
-      />
+    <Flex gap={1} align="center" mb={3}>
+  {/* Tooltip for the Pseudo Code button */}
+      <Tooltip label="Show Pseudo Code" placement="top" hasArrow>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          colorScheme="purple"
+          icon={<Code size={"25"}/>}
+          onClick={onOpen}
+          aria-label="Show Pseudo Code"
+        />
+      </Tooltip>
 
-      <IconButton
-        variant="ghost"
-        size="sm"
-        colorScheme="purple"
-        icon={<ExternalLink 
-          size={"23"}
-        />}
-        onClick={() => window.open(href, '_blank')}
-        aria-label="Open Problem"
-      />
+      {/* Tooltip for the External Link button */}
+      <Tooltip label="Open Problem Link" placement="top" hasArrow>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          colorScheme="purple"
+          icon={<ExternalLink 
+            size={"23"}
+          />}
+          onClick={() => window.open(href, '_blank')}
+          aria-label="Open Problem"
+        />
+      </Tooltip>
     </Flex>
 
       {/* TC / SC boxes with Icons above them */}

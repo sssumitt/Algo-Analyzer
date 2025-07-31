@@ -28,12 +28,13 @@ model Problem {
   domain       String
   keyAlgorithm String
   difficulty   String
+  approachName String     // NEW FIELD
   createdAt    DateTime   @default(now())
   userId       String
   analyses     Analysis[]
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, url])
+  @@unique([userId, url, approachName])
   @@index([domain, keyAlgorithm])
 }
 

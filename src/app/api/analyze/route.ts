@@ -11,6 +11,7 @@ You are an expert algorithm tutor. For every problem return ONE JSON object.
 Field rules
 ───────────
 • name         – human-readable title (e.g. "Two Sum")
+• approachName – A short, descriptive name for this specific solution. (e.g. "Brute Force", "Hash Map O(n)", "Two Pointers")
 • pseudoCode   – 3-10 ultra-concise English lines (first = signature)
 • time         – ONE Big-O term (e.g. "O(n)")
 • space        – ONE Big-O term (e.g. "O(1)")
@@ -32,6 +33,7 @@ type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 interface AnalysisJSON {
   name: string;
+  approachName: string; // NEW FIELD
   pseudoCode: string[];
   time: string;
   space: string;
@@ -56,8 +58,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     const userId = session.user.id;
 
-    // Note: The user upsert logic here is fine for ensuring a user record exists.
-    // No changes needed for this part.
     await prisma.user.upsert({
       where: { id: userId },
       create: {
@@ -84,29 +84,30 @@ export async function POST(req: NextRequest) {
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              name:       { type: Type.STRING },
-              pseudoCode: { type: Type.ARRAY, items: { type: Type.STRING } },
-              time:       { type: Type.STRING },
-              space:      { type: Type.STRING },
-              tags:       { type: Type.ARRAY, items: { type: Type.STRING } },
-              difficulty: { type: Type.STRING },
+              name:         { type: Type.STRING },
+              approachName: { type: Type.STRING }, // NEW
+              pseudoCode:   { type: Type.ARRAY, items: { type: Type.STRING } },
+              time:         { type: Type.STRING },
+              space:        { type: Type.STRING },
+              tags:         { type: Type.ARRAY, items: { type: Type.STRING } },
+              difficulty:   { type: Type.STRING },
             },
-            required: ['name', 'pseudoCode', 'time', 'space', 'tags', 'difficulty'],
+            required: ['name', 'approachName', 'pseudoCode', 'time', 'space', 'tags', 'difficulty'],
           },
         },
       });
 
     let response: Awaited<ReturnType<typeof callOnce>> | null = null;
     for (let i = 0; i <= MAX_RETRIES_MS.length; i++) {
-      try {
-        response = await callOnce();
-        break;
-      } catch (e) {
-        const msg = isError(e) ? e.message : '';
-        const retry = msg.includes('UNAVAILABLE') || msg.includes('overloaded');
-        if (!retry || i === MAX_RETRIES_MS.length) throw e;
-        await new Promise(r => setTimeout(r, MAX_RETRIES_MS[i]));
-      }
+        try {
+            response = await callOnce();
+            break;
+        } catch (e) {
+            const msg = isError(e) ? e.message : '';
+            const retry = msg.includes('UNAVAILABLE') || msg.includes('overloaded');
+            if (!retry || i === MAX_RETRIES_MS.length) throw e;
+            await new Promise(r => setTimeout(r, MAX_RETRIES_MS[i]));
+        }
     }
 
     /* 3-E. Parse */
@@ -120,13 +121,14 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
 
-    /* 3-G. Persist (REVISED LOGIC) */
-    // Find if this specific user has already saved this specific problem URL.
+    /* 3-G. Persist (REVISED LOGIC with approachName) */
     const existingProblem = await prisma.problem.findUnique({
       where: {
-        userId_url: {
+        // Use the new 3-part unique key
+        userId_url_approachName: {
           userId: userId,
           url: link,
+          approachName: parsed.approachName,
         },
       },
     });
@@ -139,11 +141,11 @@ export async function POST(req: NextRequest) {
     };
 
     if (existingProblem) {
-      // If it exists, UPDATE it and add a new analysis.
-      // This happens if a user re-submits the same problem.
+      // This user is re-submitting the same problem with the same approach.
+      // We'll just update the metadata and add a new analysis snapshot.
       await prisma.problem.update({
         where: {
-          id: existingProblem.id, // Update using the specific problem ID
+          id: existingProblem.id,
         },
         data: {
           name: parsed.name,
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
-      // If it does not exist, CREATE a new problem for this user.
+      // This is a new approach for this problem, or a new problem entirely.
       await prisma.problem.create({
         data: {
           url: link,
@@ -164,7 +166,8 @@ export async function POST(req: NextRequest) {
           domain: domain,
           keyAlgorithm: keyAlgorithm,
           difficulty: parsed.difficulty,
-          userId: userId, // Explicitly link to the user
+          approachName: parsed.approachName, // Save the new field
+          userId: userId,
           analyses: {
             create: [analysisData],
           },
