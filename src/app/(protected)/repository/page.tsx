@@ -77,15 +77,7 @@ export default async function RepositoryHome() {
                   >
                     {domain}
                   </Text>
-                  <HStack spacing={5}>
-                    {/* These counts are commented out to maintain minimalism */}
-                    {/* <Text fontSize="sm" color="whiteAlpha.500">
-                      {algorithms.length} algo{algorithms.length > 1 && 's'}
-                    </Text> */}
-                    {/* <Text fontSize="sm" color="whiteAlpha.500">
-                      {algorithms.reduce((s, a) => s + a.count, 0)} solved
-                    </Text> */}
-                  </HStack>
+    
                 </Flex>
                 <AccordionIcon color="whiteAlpha.500" boxSize={6} />
               </AccordionButton>

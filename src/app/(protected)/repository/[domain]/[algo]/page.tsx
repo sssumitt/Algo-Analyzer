@@ -3,9 +3,13 @@ import { notFound } from 'next/navigation';
 import { Box, Heading, SimpleGrid, Text } from '@chakra-ui/react';
 import ProblemCard from '@/app/components/ProblemCard';
 import React from 'react';
+import { authOptions } from '@/lib/authOptions';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth/next';
 
 /* helpers */
-const toSlug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-');
+
+
 const toLabel = (slug: string) =>
   slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
@@ -17,11 +21,17 @@ export default async function CollectionPage({ params }: PageProps) {
   const p = params ? await params : undefined;
   if (!p) notFound();
 
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect('/login');
+  const userId = session.user.id;
+
   const domainLabel = toLabel(p.domain);
   const algoLabel = toLabel(p.algo);
+  console.log(userId, domainLabel, algoLabel);
 
   const problems = await prisma.problem.findMany({
     where: {
+      userId: userId,
       domain: { equals: domainLabel, mode: 'insensitive' },
       keyAlgorithm: { equals: algoLabel, mode: 'insensitive' },
     },

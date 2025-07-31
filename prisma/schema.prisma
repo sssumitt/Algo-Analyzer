@@ -20,7 +20,7 @@ model User {
 /// *
 ///  * One row per unique URL a user analysed.
 ///  * ▸ Composite uniqueness ⟹ same user cannot save the same URL twice.
-///  * ▸ domain + keyAlgorithm stored here so it’s cheap to group by topic.
+///  * ▸ domain + keyAlgorithm stored here so it’s cheap to group by topic. causing issue diff users have same domain /algo it get's it shows in both user
 model Problem {
   id           String     @id @default(uuid())
   url          String

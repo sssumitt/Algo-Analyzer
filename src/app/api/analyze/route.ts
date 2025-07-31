@@ -10,12 +10,12 @@ You are an expert algorithm tutor. For every problem return ONE JSON object.
 
 Field rules
 ───────────
-• name         – human-readable title (e.g. "Two Sum")
-• pseudoCode   – 3-10 ultra-concise English lines (first = signature)
-• time         – ONE Big-O term (e.g. "O(n)")
-• space        – ONE Big-O term (e.g. "O(1)")
-• tags         – ARRAY **[Data Structure, keyAlgorithm]**  (e.g. ["Graph", "Dijkstra"], ["Array", "Two Pointers], ["Tree", "Binary Search"])
-• difficulty   – "Easy" | "Medium" | "Hard"
+• name         – human-readable title (e.g. "Two Sum")
+• pseudoCode   – 3-10 ultra-concise English lines (first = signature)
+• time         – ONE Big-O term (e.g. "O(n)")
+• space        – ONE Big-O term (e.g. "O(1)")
+• tags         – ARRAY **[Data Structure, keyAlgorithm]**  (e.g. ["Graph", "Dijkstra"], ["Array", "Two Pointers], ["Tree", "Binary Search"])
+• difficulty   – "Easy" | "Medium" | "Hard"
 
 Problem URL: ${link}
 
@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     const userId = session.user.id;
 
-    /* Ensure User row exists */
+    // Note: The user upsert logic here is fine for ensuring a user record exists.
+    // No changes needed for this part.
     await prisma.user.upsert({
       where: { id: userId },
       create: {
@@ -119,40 +120,57 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
 
-    /* 3-G. Persist */
-    await prisma.problem.upsert({
-      where: { userId_url: { userId, url: link } },
-      create: {
-        url: link,
-        name: parsed.name,
-        domain,
-        keyAlgorithm,
-        difficulty: parsed.difficulty,
-        user: { connect: { id: userId } },
-        analyses: {
-          create: {
-            pseudoCode: parsed.pseudoCode,
-            time: parsed.time,
-            space: parsed.space,
-            tags: parsed.tags,
-          },
-        },
-      },
-      update: {
-        name:         { set: parsed.name },
-        domain:       { set: domain },
-        keyAlgorithm: { set: keyAlgorithm },
-        difficulty:   { set: parsed.difficulty },
-        analyses: {
-          create: {
-            pseudoCode: parsed.pseudoCode,
-            time: parsed.time,
-            space: parsed.space,
-            tags: parsed.tags,
-          },
+    /* 3-G. Persist (REVISED LOGIC) */
+    // Find if this specific user has already saved this specific problem URL.
+    const existingProblem = await prisma.problem.findUnique({
+      where: {
+        userId_url: {
+          userId: userId,
+          url: link,
         },
       },
     });
+
+    const analysisData = {
+        pseudoCode: parsed.pseudoCode,
+        time: parsed.time,
+        space: parsed.space,
+        tags: parsed.tags,
+    };
+
+    if (existingProblem) {
+      // If it exists, UPDATE it and add a new analysis.
+      // This happens if a user re-submits the same problem.
+      await prisma.problem.update({
+        where: {
+          id: existingProblem.id, // Update using the specific problem ID
+        },
+        data: {
+          name: parsed.name,
+          domain: domain,
+          keyAlgorithm: keyAlgorithm,
+          difficulty: parsed.difficulty,
+          analyses: {
+            create: [analysisData],
+          },
+        },
+      });
+    } else {
+      // If it does not exist, CREATE a new problem for this user.
+      await prisma.problem.create({
+        data: {
+          url: link,
+          name: parsed.name,
+          domain: domain,
+          keyAlgorithm: keyAlgorithm,
+          difficulty: parsed.difficulty,
+          userId: userId, // Explicitly link to the user
+          analyses: {
+            create: [analysisData],
+          },
+        },
+      });
+    }
 
     /* 3-H. Return */
     return NextResponse.json({ ...parsed, domain, keyAlgorithm });
