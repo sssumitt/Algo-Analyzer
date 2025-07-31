@@ -5,18 +5,19 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 
 /* ───────────────────────── 1. Prompt template ───────────────────────── */
+// The prompt now explicitly asks for `approachName`.
 const buildPrompt = (link: string, code: string) => `
 You are an expert algorithm tutor. For every problem return ONE JSON object.
 
 Field rules
 ───────────
-• name         – human-readable title (e.g. "Two Sum")
+• name         – human-readable title (e.g. "Two Sum")
 • approachName – A short, descriptive name for this specific solution. (e.g. "Brute Force", "Hash Map O(n)", "Two Pointers")
-• pseudoCode   – 3-10 ultra-concise English lines (first = signature)
-• time         – ONE Big-O term (e.g. "O(n)")
-• space        – ONE Big-O term (e.g. "O(1)")
-• tags         – ARRAY **[Data Structure, keyAlgorithm]**  (e.g. ["Graph", "Dijkstra"], ["Array", "Two Pointers], ["Tree", "Binary Search"])
-• difficulty   – "Easy" | "Medium" | "Hard"
+• pseudoCode   – 3-10 ultra-concise English lines (first = signature)
+• time         – ONE Big-O term (e.g. "O(n)")
+• space        – ONE Big-O term (e.g. "O(1)")
+• tags         – ARRAY **[Data Structure, keyAlgorithm]** (e.g. ["Graph", "Dijkstra"], ["Array", "Two Pointers], ["Tree", "Binary Search"])
+• difficulty   – "Easy" | "Medium" | "Hard"
 
 Problem URL: ${link}
 
@@ -31,9 +32,10 @@ const MAX_RETRIES_MS = [250, 500, 1000] as const;
 /* ───────────────────────── 2. Helpers ──────────────────────────────── */
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+// The interface now includes `approachName`.
 interface AnalysisJSON {
   name: string;
-  approachName: string; // NEW FIELD
+  approachName: string; 
   pseudoCode: string[];
   time: string;
   space: string;
@@ -81,11 +83,12 @@ export async function POST(req: NextRequest) {
         contents: buildPrompt(link, code),
         config: {
           responseMimeType: 'application/json',
+          // The schema now requires `approachName`.
           responseSchema: {
             type: Type.OBJECT,
             properties: {
               name:         { type: Type.STRING },
-              approachName: { type: Type.STRING }, // NEW
+              approachName: { type: Type.STRING },
               pseudoCode:   { type: Type.ARRAY, items: { type: Type.STRING } },
               time:         { type: Type.STRING },
               space:        { type: Type.STRING },
@@ -110,8 +113,16 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    /* 3-E. Parse */
+    /* 3-E. Parse and Validate */
     const parsed = JSON.parse((response!.text ?? '').trim()) as AnalysisJSON;
+
+    // We add a check to ensure Gemini returned a valid approachName.
+    if (!parsed.approachName || typeof parsed.approachName !== 'string') {
+        return NextResponse.json(
+            { error: "Analysis failed: The AI did not provide a valid 'approachName'. Please try again." },
+            { status: 502 }
+        );
+    }
 
     /* 3-F. Extract domain / algo */
     const [domain, keyAlgorithm] = parsed.tags;
@@ -121,10 +132,10 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
 
-    /* 3-G. Persist (REVISED LOGIC with approachName) */
+    /* 3-G. Persist (FIXED LOGIC) */
+    // This logic replaces the problematic `upsert` with a safer find-then-act pattern.
     const existingProblem = await prisma.problem.findUnique({
       where: {
-        // Use the new 3-part unique key
         userId_url_approachName: {
           userId: userId,
           url: link,
@@ -141,24 +152,20 @@ export async function POST(req: NextRequest) {
     };
 
     if (existingProblem) {
-      // This user is re-submitting the same problem with the same approach.
-      // We'll just update the metadata and add a new analysis snapshot.
+      // If it exists, we just update it.
       await prisma.problem.update({
-        where: {
-          id: existingProblem.id,
-        },
+        where: { id: existingProblem.id },
         data: {
           name: parsed.name,
           domain: domain,
           keyAlgorithm: keyAlgorithm,
           difficulty: parsed.difficulty,
-          analyses: {
-            create: [analysisData],
-          },
+          analyses: { create: [analysisData] },
         },
       });
     } else {
-      // This is a new approach for this problem, or a new problem entirely.
+      // If it's new, we CREATE it, making sure to include `approachName`.
+      // This is the key part that fixes your error.
       await prisma.problem.create({
         data: {
           url: link,
@@ -166,11 +173,9 @@ export async function POST(req: NextRequest) {
           domain: domain,
           keyAlgorithm: keyAlgorithm,
           difficulty: parsed.difficulty,
-          approachName: parsed.approachName, // Save the new field
+          approachName: parsed.approachName, // Providing the required value
           userId: userId,
-          analyses: {
-            create: [analysisData],
-          },
+          analyses: { create: [analysisData] },
         },
       });
     }
