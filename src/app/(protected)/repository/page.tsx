@@ -1,7 +1,7 @@
 // src/app/(protected)/repository/page.tsx
 import {
   Box, Heading, Accordion, AccordionItem, AccordionButton,
-  AccordionPanel, AccordionIcon, Flex, HStack, Text, VStack,
+  AccordionPanel, AccordionIcon, Flex, Text, VStack,
 } from '@chakra-ui/react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';

@@ -1,6 +1,5 @@
 'use client'
 
-// Make sure to import your actual components. These are placeholders for structure.
 import { HeroContent } from './components/landingPage/HeroContent' 
 import { FeaturesSection } from './components/landingPage/FeatureSection'
 import { FinalCTA } from './components/landingPage/FinalCTA'

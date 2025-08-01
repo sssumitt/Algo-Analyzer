@@ -1,14 +1,18 @@
 'use client'
 
-import { AnalyticsSection } from '../../sections/AnalyticsSection'
-import { MemoryGraphSection } from '../../sections/MemoryGraphSection'
+import PerformanceCard from '@/app/components/analysis/PerformanceCard'
+import AnalyticsCard  from '@/app/components/analysis/AnalyticsSection'
+import MemoryCard from '@/app/components/analysis/MemoryCard'
+// import KnowledgeGraphSection from '@/app/components/analysis/KnowledgeGraph'
 
 
 export default function LandingPage() {
   return (
     <>
-        <AnalyticsSection />
-        <MemoryGraphSection />
+        <PerformanceCard/>
+        <AnalyticsCard/>
+        <MemoryCard />
+        {/* <KnowledgeGraphSection /> */}
     </>
   )
 }

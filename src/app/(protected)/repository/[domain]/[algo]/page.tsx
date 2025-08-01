@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { Box, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+
 import ProblemCard from '@/app/components/ProblemCard';
 import React from 'react';
 import { authOptions } from '@/lib/authOptions';

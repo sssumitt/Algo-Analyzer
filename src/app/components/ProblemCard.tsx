@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+// import { useState } from 'react';
 import {
   Box,
   Badge,
@@ -21,7 +21,7 @@ import {
   IconButton,
   Tooltip
 } from '@chakra-ui/react';
-import { Clock, Zap, Code, ExternalLink, MemoryStick } from 'lucide-react';
+import { Clock, Code, ExternalLink, MemoryStick } from 'lucide-react';
 import { CodeWindow } from './CodeWindow'; // Import CodeWindow component
 
 
