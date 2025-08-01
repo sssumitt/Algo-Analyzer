@@ -1,9 +1,7 @@
-
 html, body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   overflow-y: scroll;
-  /* background: #c6d136;           */
 }
 
 html::-webkit-scrollbar,

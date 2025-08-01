@@ -17,6 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, ArrowRight, Shuffle } from 'lucide-react';
+import {CodeWindow} from '@/app/components/CodeWindow'; 
 
 // --- Type Definitions ---
 type MemoryCardData = {
@@ -77,7 +78,7 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
                     borderColor="rgba(255, 255, 255, 0.1)"
                     style={{ backfaceVisibility: 'hidden' }}
                 >
-                    <Tag size="lg" colorScheme={difficultyColor[data.difficulty].split('.')[0]} variant="subtle">
+                    <Tag size="lg" colorScheme={difficultyColor[data.difficulty]?.split('.')[0] || 'gray'} variant="subtle">
                         <TagLabel>{data.difficulty}</TagLabel>
                     </Tag>
                     <Heading textAlign="center" size="lg" color="whiteAlpha.900">{data.name}</Heading>
@@ -112,9 +113,9 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
                         fontSize="sm"
                         color="gray.300"
                     >
-                        <chakra.pre whiteSpace="pre-wrap" wordBreak="break-word">
-                            {data.pseudoCode.join('\n')}
-                        </chakra.pre>
+                        
+                 <CodeWindow lines={data.pseudoCode} />
+
                     </Box>
                     <HStack justify="space-around" pt={4}>
                         <VStack spacing={0} align="center">
@@ -142,39 +143,47 @@ export default function MemoryCardSection() {
   const [allCards, setAllCards] = useState<MemoryCardData[]>([]);
   const [filteredCards, setFilteredCards] = useState<MemoryCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [animation, setAnimation] = useState<'next' | 'prev' | 'none'>('none');
   const [selectedDomain, setSelectedDomain] = useState('All');
 
-  // --- MODIFIED DATA FETCHING LOGIC ---
+  // Fetch data from the API endpoint on component mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchMemoryCards = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const response = await fetch('/api/user/memory-cards');
         if (!response.ok) {
-          throw new Error('Failed to fetch memory cards');
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
-        const fetchedCards: MemoryCardData[] = await response.json();
-        setAllCards(fetchedCards);
-        setFilteredCards(fetchedCards);
-      } catch (error) {
-        console.error("Error fetching memory cards:", error);
-        setAllCards([]);
-        setFilteredCards([]);
+        const data: MemoryCardData[] = await response.json();
+        setAllCards(data);
+        setFilteredCards(data);
+      } catch (err: unknown) { // ✅ FIX: Changed 'any' to 'unknown' for type safety
+        let errorMessage = "Could not load cards. Please try again later.";
+        if (err instanceof Error) {
+            errorMessage = err.message;
+        }
+        console.error("Failed to fetch memory cards:", err);
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchData();
+
+    fetchMemoryCards();
   }, []);
 
+  // Memoize the list of unique domains from all cards
   const domains = useMemo(() => {
     const uniqueDomains = new Set(allCards.map(card => card.domain));
     return ['All', ...Array.from(uniqueDomains)];
   }, [allCards]);
 
+  // Effect to filter cards when the selected domain changes
   useEffect(() => {
     setIsFlipped(false);
     if (selectedDomain === 'All') {
@@ -185,6 +194,7 @@ export default function MemoryCardSection() {
     setCurrentIndex(0);
   }, [selectedDomain, allCards]);
 
+  // Function to handle card navigation and shuffling
   const changeCard = (direction: 'next' | 'prev' | 'shuffle') => {
     if (filteredCards.length === 0) return;
     setIsFlipped(false);
@@ -195,15 +205,18 @@ export default function MemoryCardSection() {
             setCurrentIndex((prev) => (prev + 1) % filteredCards.length);
         } else if (direction === 'prev') {
             setCurrentIndex((prev) => (prev - 1 + filteredCards.length) % filteredCards.length);
-        } else {
-            setFilteredCards(prev => [...prev].sort(() => Math.random() - 0.5));
+        } else { // 'shuffle'
+            const shuffled = [...filteredCards].sort(() => Math.random() - 0.5);
+            // Ensure the first card is different from the current one if possible
+            if (shuffled.length > 1 && shuffled[0].id === filteredCards[currentIndex]?.id) {
+                [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+            }
+            setFilteredCards(shuffled);
             setCurrentIndex(0);
         }
         setAnimation('none');
     }, 200);
   };
-
-  const currentCard = useMemo(() => filteredCards[currentIndex], [filteredCards, currentIndex]);
 
   return (
     <Box
@@ -229,10 +242,11 @@ export default function MemoryCardSection() {
                     borderColor="gray.700"
                     _hover={{ borderColor: 'gray.600' }}
                     _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #B794F4' }}
+                    isDisabled={isLoading || !!error}
                 >
                     {domains.map(domain => <option key={domain} value={domain}>{domain}</option>)}
                 </Select>
-                <Text color="gray.400" fontSize="sm" flexShrink={0}>
+                <Text color="gray.400" fontSize="sm" flexShrink={0} w="55px" textAlign="right">
                     {isLoading ? '...' : `${filteredCards.length > 0 ? currentIndex + 1 : 0} / ${filteredCards.length}`}
                 </Text>
             </HStack>
@@ -240,14 +254,15 @@ export default function MemoryCardSection() {
         
         <Box h="350px" position="relative">
           {isLoading ? (
-            <Center h="100%">
-              <Spinner color="purple.400" />
-            </Center>
+            <Center h="100%"><Spinner color="purple.400" /></Center>
+          ) : error ? (
+            <Center h="100%"><Text color="red.400">{error}</Text></Center>
           ) : filteredCards.length > 0 ? (
             filteredCards.map((card, index) => {
                 const offset = (index - currentIndex + filteredCards.length) % filteredCards.length;
                 const isCurrent = index === currentIndex;
 
+                // Only render the current card and the next two for performance
                 if (offset > 2) return null;
 
                 return (
@@ -275,7 +290,9 @@ export default function MemoryCardSection() {
             })
           ) : (
             <Center h="100%">
-              <Text color="gray.500">No cards found for this topic.</Text>
+              <Text color="gray.500">
+                {allCards.length > 0 ? `No cards found for "${selectedDomain}".` : 'No memory cards available.'}
+              </Text>
             </Center>
           )}
         </Box>
@@ -287,7 +304,7 @@ export default function MemoryCardSection() {
                 isRound
                 size="lg"
                 onClick={() => changeCard('prev')}
-                isDisabled={isLoading || animation !== 'none' || filteredCards.length < 2}
+                isDisabled={isLoading || !!error || animation !== 'none' || filteredCards.length < 2}
             />
             <IconButton
                 aria-label="Shuffle deck"
@@ -295,7 +312,7 @@ export default function MemoryCardSection() {
                 isRound
                 size="lg"
                 onClick={() => changeCard('shuffle')}
-                isDisabled={isLoading || animation !== 'none' || filteredCards.length < 2}
+                isDisabled={isLoading || !!error || animation !== 'none' || filteredCards.length < 2}
                 colorScheme="purple"
             />
             <IconButton
@@ -304,7 +321,7 @@ export default function MemoryCardSection() {
                 isRound
                 size="lg"
                 onClick={() => changeCard('next')}
-                isDisabled={isLoading || animation !== 'none' || filteredCards.length < 2}
+                isDisabled={isLoading || !!error || animation !== 'none' || filteredCards.length < 2}
             />
         </HStack>
       </VStack>

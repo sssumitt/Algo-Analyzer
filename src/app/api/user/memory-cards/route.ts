@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from '@/lib/prisma'; // Ensure you have a prisma client instance here
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/authOptions'; // Your NextAuth options
+import { authOptions } from '@/lib/authOptions';
+import { z } from 'zod';
 
-// --- Type Definitions ---
-// This type should ideally be in a shared file (e.g., src/types/index.ts)
+// --- Type Definition for Frontend ---
 type MemoryCardData = {
   id: string;
   name: string;
@@ -16,10 +16,10 @@ type MemoryCardData = {
   domain: string;
 };
 
-// ✅ FIX: Define a specific type for the JSON structure of pseudoCode
-interface PseudoCodeJson {
-    pseudoCode?: string[];
-}
+// --- Zod Schema for Runtime Validation ---
+const pseudoCodeSchema = z.object({
+  pseudoCode: z.array(z.string()).optional(),
+});
 
 
 export async function GET(): Promise<NextResponse> {
@@ -31,7 +31,7 @@ export async function GET(): Promise<NextResponse> {
     }
     const userId = session.user.id;
 
-    // 2. Fetch all problems for the user, including their latest analysis
+    // 2. Fetch all problems for the user
     const problems = await prisma.problem.findMany({
       where: { userId },
       include: {
@@ -39,19 +39,35 @@ export async function GET(): Promise<NextResponse> {
           orderBy: {
             createdAt: 'desc',
           },
-          take: 1, // Get only the most recent analysis
+          take: 1,
         },
       },
     });
 
-    // 3. Filter out problems that have no analysis and transform the data
+    // 3. Filter problems and transform data with robust parsing
     const memoryCards: MemoryCardData[] = problems
       .filter(problem => problem.analyses.length > 0)
       .map(problem => {
         const latestAnalysis = problem.analyses[0];
+        const rawPseudoCode = latestAnalysis.pseudoCode;
         
-        const pseudoCodeJson = latestAnalysis.pseudoCode as PseudoCodeJson;
-        const pseudoCode = pseudoCodeJson?.pseudoCode || ['No pseudocode available.'];
+        let finalPseudoCode: string[];
+
+        // Attempt to parse against the expected object schema first.
+        const parsedObject = pseudoCodeSchema.safeParse(rawPseudoCode);
+
+        if (parsedObject.success) {
+          // Case A: Data is in the expected { pseudoCode: [...] } format.
+          finalPseudoCode = parsedObject.data.pseudoCode ?? ['No pseudocode available.'];
+        } else if (Array.isArray(rawPseudoCode) && rawPseudoCode.every(item => typeof item === 'string')) {
+          // Case B: Data is a simple array of strings: [...]
+          finalPseudoCode = rawPseudoCode;
+        } else {
+          // Case C: The format is unknown or invalid.
+          finalPseudoCode = ['Invalid pseudocode format.'];
+          // Log a warning for easier debugging of malformed data.
+          console.warn(`Unrecognized pseudocode structure for problem "${problem.name}":`, rawPseudoCode);
+        }
 
         return {
           id: problem.id,
@@ -61,8 +77,7 @@ export async function GET(): Promise<NextResponse> {
           spaceComplexity: latestAnalysis.space,
           keyAlgorithm: problem.keyAlgorithm,
           domain: problem.domain,
-          // Ensure the final pseudoCode is always an array of strings
-          pseudoCode: Array.isArray(pseudoCode) ? pseudoCode : [String(pseudoCode)],
+          pseudoCode: finalPseudoCode,
         };
       });
 
