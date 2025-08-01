@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Container, Text, HStack, Link, IconButton } from '@chakra-ui/react';
+import { Box, Container, Text, HStack, IconButton } from '@chakra-ui/react';
 import { Github, Twitter, Linkedin } from 'lucide-react';
 
 /** A minimalist and subtle global footer */

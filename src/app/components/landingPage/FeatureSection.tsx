@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Container, SimpleGrid, Heading, Text, VStack } from '@chakra-ui/react'
-import { Bug, Database, Share2, LineChart, LucideProps } from 'lucide-react'
+import { Bug, Database, Share2, LineChart } from 'lucide-react'
 import { FC, ReactElement } from 'react'
 
 // A reusable card component for a more structured and stylish look

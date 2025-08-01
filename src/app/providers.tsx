@@ -1,8 +1,8 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { SaasProvider, theme as saasTheme } from '@saas-ui/react';
-import { extendTheme } from '@chakra-ui/react';
+import { SaasProvider } from '@saas-ui/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { theme } from './theme';
 

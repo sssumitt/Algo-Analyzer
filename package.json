@@ -27,6 +27,7 @@
     "auth": "^1.2.3",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
+    "d3": "^7.9.0",
     "dotenv": "^17.2.1",
     "framer-motion": "^12.23.9",
     "langchain": "^0.3.30",
@@ -37,6 +38,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-flow-renderer": "^10.3.17",
+    "react-force-graph-3d": "^1.28.0",
     "react-icons": "^5.5.0",
     "reactflow": "^11.11.4",
     "recharts": "^3.1.0",
@@ -46,6 +48,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/bcrypt": "^6.0.0",
+    "@types/d3": "^7.4.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
