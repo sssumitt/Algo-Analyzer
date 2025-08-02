@@ -12,6 +12,7 @@ Field rules
 ───────────
 • name                 – human-readable title (e.g. "Two Sum")
 • approachName         – CHOOSE the BEST-FITTING name from the "Canonical Approaches" list below.
+• approachDescription  – (OPTIONAL) If approachName is "Other", provide a short, specific description here (e.g., "Kadane's Algorithm").
 • pseudoCode           – 3-10 ultra-concise English lines (first = signature)
 • time                 – ONE Big-O term. Be extremely precise. Distinguish between variables (e.g., N, M, K). For DSU, include the Inverse Ackermann function α(N). MUST NOT contain markdown.
 • space                – ONE Big-O term. Be extremely precise. MUST NOT contain markdown.
@@ -23,6 +24,7 @@ Canonical Approaches (for the 'approachName' field)
 - Brute Force, Two Pointers, Sliding Window, Hash Map / Hash Set, Stack, Queue, Priority Queue / Heap, Recursion, Backtracking, Dynamic Programming (Memoization), Dynamic Programming (Tabulation), Binary Search, Greedy Approach, Bit Manipulation, Trie, Graph Traversal (BFS), Graph Traversal (DFS), Union Find / DSU, Other
 
 Problem URL: ${link}
+
 Solution code:
 ${code}
 `;
@@ -48,23 +50,19 @@ interface AnalysisJSON {
 const isError = (e: unknown): e is Error =>
   typeof e === 'object' && e !== null && 'message' in e;
 
-const toUpperCamelCase = (str: string) => {
+// ✅ New helper to convert UpperCamelCase to a space-separated string.
+const splitCamelCase = (str: string): string => {
     if (!str) return '';
-    return str
-        .replace(/[\s-]+/g, ' ')
-        .trim()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join('');
+    // Inserts a space before each uppercase letter and trims the result.
+    // e.g., "DepthFirstSearch" -> "Depth First Search"
+    return str.replace(/([A-Z])/g, ' $1').trim();
 };
 
-// ✅ New helper to clean up malformed Big-O strings from the AI.
 const cleanBigOString = (str: string) => {
     if (!str) return '';
-    // Specifically targets and fixes the Inverse Ackermann function malformation.
-    // e.g., O(N * M * ")[Alpha](N*M))  ->  O(N * M * α(N*M))
     return str.replace(/(\s?\*?\s?)\"?\[Alpha\]\(([^)]+)\)\)?/g, '$1α($2)');
 };
+
 
 /* ───────────────────────── 3. API Route ─────────────────────────────── */
 export async function POST(req: NextRequest) {
@@ -80,16 +78,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
     const userId = session.user.id;
 
-    await prisma.user.upsert({
-      where: { id: userId },
-      create: {
-        id: userId,
-        username: session.user.name ?? userId,
-        email: session.user.email ?? null,
-        passwordHash: '',
-      },
-      update: {},
-    });
+    await prisma.user.upsert({ where: { id: userId }, create: { id: userId, username: session.user.name ?? userId, email: session.user.email ?? null, passwordHash: '' }, update: {} });
 
     /* 3-C. Init Gemini */
     const apiKey = process.env.GEMINI_API_KEY;
@@ -132,78 +121,44 @@ export async function POST(req: NextRequest) {
             await new Promise(r => setTimeout(r, MAX_RETRIES_MS[i]));
         }
     }
-
+    
     /* 3-E. Parse and Validate */
     const parsed = JSON.parse((response!.text ?? '').trim()) as AnalysisJSON;
-
     if (!parsed.approachName || typeof parsed.approachName !== 'string') {
-        return NextResponse.json(
-            { error: "Analysis failed: The AI did not provide a valid 'approachName'. Please try again." },
-            { status: 502 }
-        );
+        return NextResponse.json( { error: "Analysis failed: The AI did not provide a valid 'approachName'. Please try again." }, { status: 502 });
     }
 
     /* 3-F. Extract and Format data */
     const [domain, rawKeyAlgorithm] = parsed.tags;
-    if (!domain || !rawKeyAlgorithm)
-      return NextResponse.json(
-        { error: 'Gemini did not return tags in [domain, keyAlgorithm] format.' },
-        { status: 502 },
-      );
+    if (!domain || !rawKeyAlgorithm) return NextResponse.json({ error: 'Gemini did not return tags in [domain, keyAlgorithm] format.' }, { status: 502 });
 
-    const keyAlgorithm = toUpperCamelCase(rawKeyAlgorithm);
+    // ✅ Use the new helper to get the final, human-readable format.
+    const keyAlgorithm = splitCamelCase(rawKeyAlgorithm);
 
     let finalApproachName = parsed.approachName;
     if (finalApproachName === 'Other' && parsed.approachDescription) {
         finalApproachName = parsed.approachDescription;
     }
     
-    // ✅ Clean the time and space complexity strings before use.
     const timeComplexity = cleanBigOString(parsed.time);
     const spaceComplexity = cleanBigOString(parsed.space);
 
     /* 3-G. Persist Data */
     const existingProblem = await prisma.problem.findUnique({
-      where: {
-        userId_url_approachName: {
-          userId: userId,
-          url: link,
-          approachName: finalApproachName,
-        },
-      },
+      where: { userId_url_approachName: { userId: userId, url: link, approachName: finalApproachName } },
     });
 
     const analysisData = {
         pseudoCode: parsed.pseudoCode,
-        time: timeComplexity, // Use cleaned value
-        space: spaceComplexity, // Use cleaned value
-        tags: [domain, keyAlgorithm],
+        time: timeComplexity,
+        space: spaceComplexity,
+        tags: [domain, keyAlgorithm], // Save the human-readable version
     };
 
     if (existingProblem) {
-      await prisma.problem.update({
-        where: { id: existingProblem.id },
-        data: {
-          name: parsed.name,
-          domain: domain,
-          keyAlgorithm: keyAlgorithm,
-          difficulty: parsed.difficulty,
-          analyses: { create: [analysisData] },
-        },
-      });
+      await prisma.problem.update({ where: { id: existingProblem.id }, data: { name: parsed.name, domain: domain, keyAlgorithm: keyAlgorithm, difficulty: parsed.difficulty, analyses: { create: [analysisData] } } });
     } else {
-      await prisma.problem.create({
-        data: {
-          url: link,
-          name: parsed.name,
-          domain: domain,
-          keyAlgorithm: keyAlgorithm,
-          difficulty: parsed.difficulty,
-          approachName: finalApproachName,
-          userId: userId,
-          analyses: { create: [analysisData] },
-        },
-      });
+      await prisma.problem.create({ data: { url: link, name: parsed.name, domain: domain, keyAlgorithm: keyAlgorithm, difficulty: parsed.difficulty, approachName: finalApproachName, userId: userId, analyses: { create: [analysisData] } } });
     }
 
     /* 3-H. Return */
@@ -212,14 +167,11 @@ export async function POST(req: NextRequest) {
         domain, 
         keyAlgorithm, 
         approachName: finalApproachName,
-        time: timeComplexity, // Return cleaned value
-        space: spaceComplexity, // Return cleaned value
+        time: timeComplexity,
+        space: spaceComplexity,
     });
   } catch (err) {
     console.error(err);
-    return NextResponse.json(
-      { error: isError(err) ? err.message : 'Internal server error' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: isError(err) ? err.message : 'Internal server error' }, { status: 500 });
   }
 }
