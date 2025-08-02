@@ -5,22 +5,24 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 
 /* ───────────────────────── 1. Prompt template ───────────────────────── */
-// The prompt now explicitly asks for `approachName`.
 const buildPrompt = (link: string, code: string) => `
 You are an expert algorithm tutor. For every problem return ONE JSON object.
 
 Field rules
 ───────────
-• name         – human-readable title (e.g. "Two Sum")
-• approachName – A short, descriptive name for this specific solution. (e.g. "Brute Force", "Hash Map O(n)", "Two Pointers")
-• pseudoCode   – 3-10 ultra-concise English lines (first = signature)
-• time         – ONE Big-O term (e.g. "O(n)")
-• space        – ONE Big-O term (e.g. "O(1)")
-• tags         – ARRAY **[Data Structure, keyAlgorithm]** (e.g. ["Graph", "Dijkstra"], ["Array", "Two Pointers], ["Tree", "Binary Search"])
-• difficulty   – "Easy" | "Medium" | "Hard"
+• name                 – human-readable title (e.g. "Two Sum")
+• approachName         – CHOOSE the BEST-FITTING name from the "Canonical Approaches" list below.
+• pseudoCode           – 3-10 ultra-concise English lines (first = signature)
+• time                 – ONE Big-O term. Be extremely precise. Distinguish between variables (e.g., N, M, K). For DSU, include the Inverse Ackermann function α(N). MUST NOT contain markdown.
+• space                – ONE Big-O term. Be extremely precise. MUST NOT contain markdown.
+• tags                 – ARRAY [Data Structure, KeyAlgorithm]. KeyAlgorithm MUST be UpperCamelCase (e.g. ["Graph", "Dijkstra"], ["Tree", "DepthFirstSearch"]).
+• difficulty           – "Easy" | "Medium" | "Hard"
+
+Canonical Approaches (for the 'approachName' field)
+────────────────────
+- Brute Force, Two Pointers, Sliding Window, Hash Map / Hash Set, Stack, Queue, Priority Queue / Heap, Recursion, Backtracking, Dynamic Programming (Memoization), Dynamic Programming (Tabulation), Binary Search, Greedy Approach, Bit Manipulation, Trie, Graph Traversal (BFS), Graph Traversal (DFS), Union Find / DSU, Other
 
 Problem URL: ${link}
-
 Solution code:
 ${code}
 `;
@@ -32,10 +34,10 @@ const MAX_RETRIES_MS = [250, 500, 1000] as const;
 /* ───────────────────────── 2. Helpers ──────────────────────────────── */
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
-// The interface now includes `approachName`.
 interface AnalysisJSON {
   name: string;
-  approachName: string; 
+  approachName: string;
+  approachDescription?: string;
   pseudoCode: string[];
   time: string;
   space: string;
@@ -45,6 +47,24 @@ interface AnalysisJSON {
 
 const isError = (e: unknown): e is Error =>
   typeof e === 'object' && e !== null && 'message' in e;
+
+const toUpperCamelCase = (str: string) => {
+    if (!str) return '';
+    return str
+        .replace(/[\s-]+/g, ' ')
+        .trim()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join('');
+};
+
+// ✅ New helper to clean up malformed Big-O strings from the AI.
+const cleanBigOString = (str: string) => {
+    if (!str) return '';
+    // Specifically targets and fixes the Inverse Ackermann function malformation.
+    // e.g., O(N * M * ")[Alpha](N*M))  ->  O(N * M * α(N*M))
+    return str.replace(/(\s?\*?\s?)\"?\[Alpha\]\(([^)]+)\)\)?/g, '$1α($2)');
+};
 
 /* ───────────────────────── 3. API Route ─────────────────────────────── */
 export async function POST(req: NextRequest) {
@@ -83,17 +103,17 @@ export async function POST(req: NextRequest) {
         contents: buildPrompt(link, code),
         config: {
           responseMimeType: 'application/json',
-          // The schema now requires `approachName`.
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              name:         { type: Type.STRING },
-              approachName: { type: Type.STRING },
-              pseudoCode:   { type: Type.ARRAY, items: { type: Type.STRING } },
-              time:         { type: Type.STRING },
-              space:        { type: Type.STRING },
-              tags:         { type: Type.ARRAY, items: { type: Type.STRING } },
-              difficulty:   { type: Type.STRING },
+              name:                { type: Type.STRING },
+              approachName:        { type: Type.STRING },
+              approachDescription: { type: Type.STRING, nullable: true },
+              pseudoCode:          { type: Type.ARRAY, items: { type: Type.STRING } },
+              time:                { type: Type.STRING },
+              space:               { type: Type.STRING },
+              tags:                { type: Type.ARRAY, items: { type: Type.STRING } },
+              difficulty:          { type: Type.STRING },
             },
             required: ['name', 'approachName', 'pseudoCode', 'time', 'space', 'tags', 'difficulty'],
           },
@@ -106,8 +126,8 @@ export async function POST(req: NextRequest) {
             response = await callOnce();
             break;
         } catch (e) {
-            const msg = isError(e) ? e.message : '';
-            const retry = msg.includes('UNAVAILABLE') || msg.includes('overloaded');
+            const msg = isError(e) ? e.message.toLowerCase() : '';
+            const retry = msg.includes('unavailable') || msg.includes('overloaded') || msg.includes('internal error');
             if (!retry || i === MAX_RETRIES_MS.length) throw e;
             await new Promise(r => setTimeout(r, MAX_RETRIES_MS[i]));
         }
@@ -116,7 +136,6 @@ export async function POST(req: NextRequest) {
     /* 3-E. Parse and Validate */
     const parsed = JSON.parse((response!.text ?? '').trim()) as AnalysisJSON;
 
-    // We add a check to ensure Gemini returned a valid approachName.
     if (!parsed.approachName || typeof parsed.approachName !== 'string') {
         return NextResponse.json(
             { error: "Analysis failed: The AI did not provide a valid 'approachName'. Please try again." },
@@ -124,35 +143,44 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    /* 3-F. Extract domain / algo */
-    const [domain, keyAlgorithm] = parsed.tags;
-    if (!domain || !keyAlgorithm)
+    /* 3-F. Extract and Format data */
+    const [domain, rawKeyAlgorithm] = parsed.tags;
+    if (!domain || !rawKeyAlgorithm)
       return NextResponse.json(
         { error: 'Gemini did not return tags in [domain, keyAlgorithm] format.' },
         { status: 502 },
       );
 
-    /* 3-G. Persist (FIXED LOGIC) */
-    // This logic replaces the problematic `upsert` with a safer find-then-act pattern.
+    const keyAlgorithm = toUpperCamelCase(rawKeyAlgorithm);
+
+    let finalApproachName = parsed.approachName;
+    if (finalApproachName === 'Other' && parsed.approachDescription) {
+        finalApproachName = parsed.approachDescription;
+    }
+    
+    // ✅ Clean the time and space complexity strings before use.
+    const timeComplexity = cleanBigOString(parsed.time);
+    const spaceComplexity = cleanBigOString(parsed.space);
+
+    /* 3-G. Persist Data */
     const existingProblem = await prisma.problem.findUnique({
       where: {
         userId_url_approachName: {
           userId: userId,
           url: link,
-          approachName: parsed.approachName,
+          approachName: finalApproachName,
         },
       },
     });
 
     const analysisData = {
         pseudoCode: parsed.pseudoCode,
-        time: parsed.time,
-        space: parsed.space,
-        tags: parsed.tags,
+        time: timeComplexity, // Use cleaned value
+        space: spaceComplexity, // Use cleaned value
+        tags: [domain, keyAlgorithm],
     };
 
     if (existingProblem) {
-      // If it exists, we just update it.
       await prisma.problem.update({
         where: { id: existingProblem.id },
         data: {
@@ -164,8 +192,6 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
-      // If it's new, we CREATE it, making sure to include `approachName`.
-      // This is the key part that fixes your error.
       await prisma.problem.create({
         data: {
           url: link,
@@ -173,7 +199,7 @@ export async function POST(req: NextRequest) {
           domain: domain,
           keyAlgorithm: keyAlgorithm,
           difficulty: parsed.difficulty,
-          approachName: parsed.approachName, // Providing the required value
+          approachName: finalApproachName,
           userId: userId,
           analyses: { create: [analysisData] },
         },
@@ -181,7 +207,14 @@ export async function POST(req: NextRequest) {
     }
 
     /* 3-H. Return */
-    return NextResponse.json({ ...parsed, domain, keyAlgorithm });
+    return NextResponse.json({ 
+        ...parsed, 
+        domain, 
+        keyAlgorithm, 
+        approachName: finalApproachName,
+        time: timeComplexity, // Return cleaned value
+        space: spaceComplexity, // Return cleaned value
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json(

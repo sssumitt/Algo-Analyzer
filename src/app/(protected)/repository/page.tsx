@@ -15,7 +15,7 @@ type DomainAlgoRow = { domain: string; keyAlgorithm: string };
 
 export default async function RepositoryHome() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect('/login');
+  if (!session?.user?.id) redirect('/signup');
   const userId = session.user.id;
 
   const rows = await prisma.problem.findMany({

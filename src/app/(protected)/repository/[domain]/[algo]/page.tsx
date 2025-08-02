@@ -23,7 +23,7 @@ export default async function CollectionPage({ params }: PageProps) {
   if (!p) notFound();
 
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect('/login');
+  if (!session?.user?.id) redirect('/signup');
   const userId = session.user.id;
 
   const domainLabel = toLabel(p.domain);
