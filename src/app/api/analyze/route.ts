@@ -129,11 +129,12 @@ export async function POST(req: NextRequest) {
     }
 
     /* 3-F. Extract and Format data */
-    const [domain, rawKeyAlgorithm] = parsed.tags;
-    if (!domain || !rawKeyAlgorithm) return NextResponse.json({ error: 'Gemini did not return tags in [domain, keyAlgorithm] format.' }, { status: 502 });
+    const [rawDomain, rawKeyAlgorithm] = parsed.tags;
+    if (!rawDomain || !rawKeyAlgorithm) return NextResponse.json({ error: 'Gemini did not return tags in [domain, keyAlgorithm] format.' }, { status: 502 });
 
     // ✅ Use the new helper to get the final, human-readable format.
     const keyAlgorithm = splitCamelCase(rawKeyAlgorithm);
+    const domain = splitCamelCase(rawDomain);
 
     let finalApproachName = parsed.approachName;
     if (finalApproachName === 'Other' && parsed.approachDescription) {
