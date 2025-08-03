@@ -22,9 +22,10 @@ export default async function ProtectedLayout({
   return (
     <Flex direction="column" minH="100vh">
       <NavbarAuth user={userName} />
-      <Box as="main" flex="1" px={4} py={6}>
+      {/* <Box as="main" flex="1" px={4} py={6}>
         {children}
-      </Box>
+      </Box> */}
+      <div>{children}</div>
       {/* <Footer /> */}
     </Flex>
   );
