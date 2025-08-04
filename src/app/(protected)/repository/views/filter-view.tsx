@@ -17,6 +17,7 @@ import {
   HStack,
   Wrap,
   WrapItem,
+  Center,
 } from '@chakra-ui/react';
 import { getFilteredProblems, FilteredProblem, ProblemFilters } from '../actions';
 import ProblemCard from '@/app/components/ProblemCard';
@@ -99,8 +100,10 @@ export default function FilteredView({ allDomains, allAlgorithms }: FilteredView
         as="aside"
         w={{ base: '100%', md: '300px' }}
         alignSelf="flex-start"
-        position="sticky"
-        top="24px"
+        // --- THIS IS THE FIX ---
+        // Be sticky on desktop, but a normal block on mobile
+        position={{ base: 'static', md: 'sticky' }}
+        top="80px"
         p={2}
       >
         <VStack spacing={4} align="stretch">
@@ -122,9 +125,9 @@ export default function FilteredView({ allDomains, allAlgorithms }: FilteredView
               <VStack align="stretch" spacing={4}>
                 <HStack>
                   <Icon as={FaThLarge} color="blue.400" />
-                  <Heading size="sm">Domains ({selectedDomains.length})</Heading>
+                  <Heading size="sm">Domains</Heading>
                 </HStack>
-                <Wrap spacing={2}>
+                <Wrap spacing={2} overflowY="auto"  maxHeight={'200px'} className="scrollbar-hidden">
                   {allDomains.map(domain => (
                     <WrapItem key={domain}>
                       <FilterPill
@@ -141,16 +144,16 @@ export default function FilteredView({ allDomains, allAlgorithms }: FilteredView
           </Card>
 
           {/* Algorithms Filter Card */}
-          <Card bg="gray.900" variant="outline" borderColor="whiteAlpha.100">
+          <Card bg="gray.900" variant="outline" borderColor="whiteAlpha.100"  >
             <CardBody>
               <VStack align="stretch" spacing={4}>
                 <HStack>
                   <Icon as={FaCodeBranch} color="green.400" />
-                  <Heading size="sm">Algorithms ({selectedAlgos.length})</Heading>
+                  <Heading size="sm">Algorithms</Heading>
                 </HStack>
-                <Wrap spacing={2}>
+                <Wrap spacing={2} overflowY="auto"  maxHeight={'200px'} className="scrollbar-hidden">
                   {allAlgorithms.map(algo => (
-                    <WrapItem key={algo}>
+                    <WrapItem key={algo} >
                       <FilterPill
                         label={algo}
                         isSelected={selectedAlgos.includes(algo)}
