@@ -65,11 +65,12 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
   return (
     <Box
       p={{ base: 6, md: 8 }}
-      bg="#1C1C1E" // Solid dark background
+      bg="#1C1C1E"
       borderRadius="xl"
+      h="100%" // Make the container fill the available height
     >
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={6} align="stretch">
+      <form onSubmit={handleSubmit} style={{ height: '100%' }}>
+        <VStack spacing={6} align="stretch" h="100%">
           <Heading as="h2" size="lg">Submit for Analysis</Heading>
           <FormControl>
             <FormLabel color="gray.400">Problem Link</FormLabel>
@@ -83,19 +84,20 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
               _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #B794F4' }}
             />
           </FormControl>
-          <FormControl isRequired>
+          <FormControl isRequired display="flex" flexDirection="column" flexGrow={1}>
             <FormLabel color="gray.400">Code Snippet</FormLabel>
             <Textarea
               placeholder="Paste your code here..."
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              rows={15}
               bg="gray.800"
               borderColor="gray.700"
               _hover={{ borderColor: 'gray.600' }}
               _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #B794F4' }}
               fontFamily="monospace"
               fontSize="sm"
+              flexGrow={1} // Allow the textarea to expand vertically
+              resize="none" // Disable manual resizing
             />
           </FormControl>
           <Button
@@ -121,7 +123,7 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
  */
 function ResultSection({ pseudoCode, results }: ResultSectionProps) {
   return (
-    <VStack spacing={10} align="stretch" w="full">
+    <VStack spacing={10} align="stretch" w="full" h="100%">
       <Box>
         <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">Complexity & Tags</Heading>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
@@ -136,10 +138,22 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
         </SimpleGrid>
       </Box>
       <Divider borderColor="gray.700" />
-      <Box>
+      <Box flex={1} minH={0} display="flex" flexDirection="column">
         <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">Pseudocode</Heading>
-        {/* This inner Box with overflowX is still correct. It ensures the CodeWindow can scroll. */}
-        <Box overflowX="auto">
+        <Box 
+          flex={1} 
+          overflowY="auto" 
+          overflowX="auto"
+          sx={{
+            '&::-webkit-scrollbar': { width: '8px', height: '8px' },
+            '&::-webkit-scrollbar-track': { background: 'transparent' },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'gray.600',
+              borderRadius: '8px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': { background: 'gray.500' },
+          }}
+        >
           <CodeWindow lines={pseudoCode} />
         </Box>
       </Box>
@@ -206,26 +220,26 @@ export default function DashboardPage() {
     <Box bg="#121212" color="white" minH="100vh">
       <Container maxW="1500px" py={12} px={{ base: 4, md: 10 }}>
         <Grid
-          templateColumns={{ base: '1fr', lg: '1fr 2fr' }}
+          templateColumns={{ base: '1fr', lg: '1.5fr 2.5fr' }}
           gap={{ base: 8, lg: 12 }}
-          alignItems="flex-start"
+          alignItems="stretch" // Make grid items stretch to match height
+          h={{ lg: 'calc(100vh - 150px)' }} // Set grid height to fill viewport minus padding
         >
-          <GridItem as="aside" position={{ base: 'static', lg: 'sticky' }} top="24px">
+          <GridItem as="aside">
             <UploadQuestionForm onSubmit={runAnalysis} isLoading={isLoading} />
           </GridItem>
-          {/* THE FIX IS HERE: `overflowX="hidden"` is added to the main GridItem. */}
-          <GridItem as="main" overflowX="hidden">
+          <GridItem as="main" overflow="hidden">
             <Box
               p={{ base: 6, md: 10 }}
               bg="#1C1C1E"
               borderRadius="xl"
-              minH={{ lg: 'calc(100vh - 48px)' }} // Full height minus padding
+              h="100%" // Make the box fill the grid item's height
               display="flex"
               alignItems="center"
               justifyContent="center"
             >
               {isLoading ? (
-                <Center>
+                <Center h="100%">
                   <VStack spacing={4}>
                     <Spinner size="xl" color="purple.400" thickness="4px" />
                     <Text color="gray.400">Analyzing your code...</Text>
@@ -237,11 +251,11 @@ export default function DashboardPage() {
                   results={[
                     { label: 'Time',  value: analysis.time  },
                     { label: 'Space', value: analysis.space },
-                    { label: 'Tags',  value: analysis.tags.join(',\n') }, // Join with newline
+                    { label: 'Tags',  value: analysis.tags.join(',\n') },
                   ]}
                 />
               ) : (
-                <Center>
+                <Center h="100%">
                     <VStack spacing={4} color="gray.600">
                         <FileText size={64} strokeWidth={1} />
                         <Text fontSize="lg">Your analysis results will appear here</Text>

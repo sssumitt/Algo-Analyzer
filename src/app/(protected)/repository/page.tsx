@@ -1,128 +1,46 @@
 // src/app/(protected)/repository/page.tsx
-import {
-  Box, Heading, Accordion, AccordionItem, AccordionButton,
-  AccordionPanel, AccordionIcon, Flex, Text, VStack,
-} from '@chakra-ui/react';
-import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
+// This is your main page file. It should be a Server Component (no 'use client').
+
+import { Box, Text } from '@chakra-ui/react';
 import { getServerSession } from 'next-auth/next';
+import { Spinner, Center } from '@chakra-ui/react';
 import { authOptions } from '@/lib/authOptions';
 import { redirect } from 'next/navigation';
-import { slugify } from '@/app/utils/slugify';
+import RepositoryHome from './views/indexed-view'; // Your existing server component
+import TabbedView from '@/app/components/tabbedView';
 
-// ---------- helper type for the two selected fields ----------
-type DomainAlgoRow = { domain: string; keyAlgorithm: string };
+import FilteredView from './views/filter-view'; // Placeholder for the filtered view
+import { getFilterOptions } from './actions';
+import { Suspense } from 'react';
 
-export default async function RepositoryHome() {
+const RepositoryLoading = () => (
+  <Center p={10}>
+    <Spinner thickness="4px" speed="0.65s" emptyColor="gray.700" color="blue.500" size="xl" />
+  </Center>
+);
+
+export default async function RepositoryPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect('/signup');
-  const userId = session.user.id;
-
-  const rows = await prisma.problem.findMany({
-    where: { userId },
-    select: { domain: true, keyAlgorithm: true },
-  });
-
-  const map = new Map<string, Map<string, number>>();
-
-  // ---------- annotate the param so TS knows the shape ----------
-  rows.forEach(({ domain, keyAlgorithm }: DomainAlgoRow) => {
-    if (!domain || !keyAlgorithm) return;
-    if (!map.has(domain)) map.set(domain, new Map());
-    const m = map.get(domain)!;
-    m.set(keyAlgorithm, (m.get(keyAlgorithm) ?? 0) + 1);
-  });
-
-  const topics = Array.from(map.entries()).map(([domain, algos]) => ({
-    domain,
-    algorithms: Array.from(algos.entries()).map(([algo, count]) => ({
-      algo,
-      count,
-    })),
-  }));
-
+    if (!session?.user?.id) redirect('/signup');
+    const userId = session.user.id;
+    const { domainOptions, algorithmOptions } = await getFilterOptions();
+  // This is the part you asked about.
+  // We are rendering the components here on the server and passing them as props.
   return (
-    <Box px={{ base: 4, md: 8 }} py={8} maxW="6xl" mx="auto">
-      <Heading size="xl" mb={8} color="whiteAlpha.900" fontWeight="extrabold">
-        Your Repository
-      </Heading>
+    // <TabbedView
+    //   // Here, we pass the placeholder component for the "Filtered" tab
+    //   filteredView={<FilteredView />}
 
-      {topics.length === 0 ? (
-        <Text color="whiteAlpha.600" fontSize="lg" mt={4}>
-          No problems saved yet. Start solving and add them here!
-        </Text>
-      ) : (
-        <Accordion allowMultiple>
-          {topics.map(({ domain, algorithms }) => (
-            <AccordionItem key={domain} border="none" mb={4}>
-              {/* ── DOMAIN CARD ───────────────────────────────────── */}
-              <AccordionButton
-                px={6}
-                py={5}
-                bg="gray.900" // Darker background for subtlety
-                _hover={{ bg: 'gray.800', transform: 'translateY(-2px)' }} // Subtle lift on hover
-                _expanded={{ bg: 'gray.800', transform: 'translateY(-2px)' }}
-                border="1px"
-                borderColor="whiteAlpha.100" // Very subtle border
-                rounded="lg"
-                transition="all 0.2s ease-in-out" // Smooth transition for hover effects
-              >
-                <Flex flex="1" align="center" justify="space-between">
-                  <Text
-                    fontSize="xl"
-                    fontWeight="bold"
-                    // Apply gradient if possible, otherwise use a suitable color
-                    // For a true gradient on text, you'd typically need a custom component or more CSS
-                    color="whiteAlpha.900"
-                  >
-                    {domain}
-                  </Text>
-    
-                </Flex>
-                <AccordionIcon color="whiteAlpha.500" boxSize={6} />
-              </AccordionButton>
-
-              {/* ── ALGO LIST ─────────────────────────────────────── */}
-              <AccordionPanel px={0} pt={4} pb={2}>
-                <Box
-                  borderLeft="3px"
-                  borderColor="linear-gradient(to bottom, #8A2BE2, #00CED1)" // Attempting gradient border, but might need custom CSS
-                  pl={10} // Slightly less indent for minimalism
-                >
-                  <VStack spacing={3} align="stretch">
-                    {algorithms.map(({ algo, count }) => (
-                      <Box
-                        as={Link}
-                        key={algo}
-                        href={`/repository/${slugify(domain)}/${slugify(algo)}`}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <Flex
-                          align="center"
-                          justify="space-between"
-                          bg="gray.800" // Slightly lighter than domain card for distinction
-                          border="1px"
-                          borderColor="whiteAlpha.50" // Even more subtle border
-                          rounded="md"
-                          px={4}
-                          py={3}
-                          _hover={{ bg: 'gray.700', transform: 'translateY(-1px)' }} // Subtle lift on hover
-                          transition="all 0.2s ease-in-out"
-                        >
-                          <Text color="whiteAlpha.800" fontSize="md">{algo}</Text>
-                          <Text fontSize="sm" color="whiteAlpha.400">
-                            {count} Solved
-                          </Text>
-                        </Flex>
-                      </Box>
-                    ))}
-                  </VStack>
-                </Box>
-              </AccordionPanel>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      )}
-    </Box>
+    //   // And here, we pass your <RepositoryHome /> server component for the "Indexed" tab
+    //   indexedView={<RepositoryHome />}
+    <TabbedView
+      // Pass the filter options to the FilteredView component
+      filteredView={<FilteredView allDomains={domainOptions ?? []} allAlgorithms={algorithmOptions ?? []} />}
+      indexedView={
+        <Suspense fallback={<RepositoryLoading />}>
+          <RepositoryHome />
+        </Suspense>
+      }
+    />
   )
 }
