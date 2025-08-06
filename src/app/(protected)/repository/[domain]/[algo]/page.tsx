@@ -69,6 +69,7 @@ export default async function CollectionPage({ params }: PageProps) {
                 timeComplexity={a.time}
                 spaceComplexity={a.space}
                 pseudoCode={a.pseudoCode as string[]}
+                notes={a.notes}
               />
             );
           })}

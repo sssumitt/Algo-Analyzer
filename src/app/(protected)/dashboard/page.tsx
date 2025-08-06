@@ -157,7 +157,7 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
       </form>
 
       {/* Notes Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} isCentered >
         <ModalOverlay bg="blackAlpha.700" />
         <ModalContent bg="#1C1C1E" color="white">
           <ModalHeader>Add Your Notes</ModalHeader>
@@ -192,7 +192,7 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
   return (
     <VStack spacing={10} align="stretch" w="full" h="100%">
       <Box>
-        <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">
+        <Heading as="h2" size="lg" mb={6} color="whiteAlpha.900">
           Complexity & Tags
         </Heading>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
@@ -216,7 +216,7 @@ function ResultSection({ pseudoCode, results }: ResultSectionProps) {
       </Box>
       <Divider borderColor="gray.700" />
       <Box flex={1} minH={0} display="flex" flexDirection="column">
-        <Heading as="h3" size="xl" mb={6} color="whiteAlpha.900">
+        <Heading as="h2" size="lg" mb={6} color="whiteAlpha.900">
           Pseudocode
         </Heading>
         <Box
@@ -283,6 +283,7 @@ export default function DashboardPage() {
 
       if (isAnalysisJSON(payload)) {
         setAnalysis(payload);
+        console.log("Analysis result:", payload);
       } else {
         throw new Error("Unexpected response shape from server");
       }

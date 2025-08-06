@@ -1,6 +1,5 @@
 'use client';
 
-// import { useState } from 'react';
 import {
   Box,
   Badge,
@@ -21,7 +20,7 @@ import {
   IconButton,
   Tooltip
 } from '@chakra-ui/react';
-import { Clock, Code, ExternalLink, MemoryStick } from 'lucide-react';
+import { Clock, Code, ExternalLink, MemoryStick, NotebookText } from 'lucide-react';
 import { CodeWindow } from './CodeWindow'; // Import CodeWindow component
 
 
@@ -34,6 +33,7 @@ interface ProblemCardProps {
   timeComplexity: string;
   spaceComplexity: string;
   pseudoCode: string[]; // pseudoCode coming from the database
+  notes: string; 
 }
 
 const diffMap: Record<Difficulty, { bg: string; color: string }> = {
@@ -49,8 +49,12 @@ export default function ProblemCard({
   timeComplexity,
   spaceComplexity,
   pseudoCode, // using the pseudoCode passed down from the parent component
+  notes,
 }: ProblemCardProps) {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  // A separate disclosure hook for each modal
+  const { isOpen: isPseudoCodeOpen, onOpen: onPseudoCodeOpen, onClose: onPseudoCodeClose } = useDisclosure();
+  const { isOpen: isNotesOpen, onOpen: onNotesOpen, onClose: onNotesClose } = useDisclosure();
+
   const cardBg = '#0e0f14';
   const cardHoverBg = '#16181d';
   const sectionBg = 'gray.800';
@@ -87,34 +91,45 @@ export default function ProblemCard({
         </Badge>
       </Flex>
 
-       {/* Buttons for opening problem and showing pseudo code */}
-    <Flex gap={1} align="center" mb={3}>
-  {/* Tooltip for the Pseudo Code button */}
-      <Tooltip label="Show Pseudo Code" placement="top" hasArrow>
-        <IconButton
-          variant="ghost"
-          size="sm"
-          colorScheme="purple"
-          icon={<Code size={"25"}/>}
-          onClick={onOpen}
-          aria-label="Show Pseudo Code"
-        />
-      </Tooltip>
+       {/* Buttons for opening problem, pseudo code, and notes */}
+      <Flex gap={1} align="center" mb={3}>
+        <Tooltip label="Show Pseudo Code" placement="top" hasArrow>
+          <IconButton
+            variant="ghost"
+            size="sm"
+            colorScheme="purple"
+            icon={<Code size={"25"}/>}
+            onClick={onPseudoCodeOpen}
+            aria-label="Show Pseudo Code"
+          />
+        </Tooltip>
 
-      {/* Tooltip for the External Link button */}
-      <Tooltip label="Open Problem Link" placement="top" hasArrow>
-        <IconButton
-          variant="ghost"
-          size="sm"
-          colorScheme="purple"
-          icon={<ExternalLink 
-            size={"23"}
-          />}
-          onClick={() => window.open(href, '_blank')}
-          aria-label="Open Problem"
-        />
-      </Tooltip>
-    </Flex>
+        {/* --- NEW NOTES BUTTON --- */}
+        <Tooltip label="Show Notes" placement="top" hasArrow isDisabled={!notes}>
+          <IconButton
+            variant="ghost"
+            size="sm"
+            colorScheme="purple"
+            icon={<NotebookText size={"25"}/>}
+            onClick={onNotesOpen}
+            aria-label="Show Notes"
+            isDisabled={!notes}
+          />
+        </Tooltip>
+
+        <Tooltip label="Open Problem Link" placement="top" hasArrow>
+          <IconButton
+            variant="ghost"
+            size="sm"
+            colorScheme="purple"
+            icon={<ExternalLink 
+              size={"23"}
+            />}
+            onClick={() => window.open(href, '_blank')}
+            aria-label="Open Problem"
+          />
+        </Tooltip>
+      </Flex>
 
       {/* TC / SC boxes with Icons above them */}
       <Grid templateColumns="repeat(2, 1fr)" gap={4} mb={6}>
@@ -141,20 +156,36 @@ export default function ProblemCard({
         </Flex>
       </Grid>
 
-     
-
       {/* Modal for pseudo code */}
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isPseudoCodeOpen} onClose={onPseudoCodeClose} size="xl">
         <ModalOverlay />
         <ModalContent bg="gray.900" borderColor="whiteAlpha.200">
           <ModalHeader color="white">Pseudo Code</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {/* Use CodeWindow for displaying the pseudo code */}
             <CodeWindow lines={pseudoCode} />
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="purple" onClick={onClose}>
+            <Button colorScheme="purple" onClick={onPseudoCodeClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* --- NEW MODAL FOR NOTES --- */}
+      <Modal isOpen={isNotesOpen} onClose={onNotesClose} isCentered>
+        <ModalOverlay />
+        <ModalContent bg="gray.900" borderColor="whiteAlpha.200">
+          <ModalHeader color="white">Notes</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text whiteSpace="pre-wrap" color="gray.300">
+              {notes}
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="purple" onClick={onNotesClose}>
               Close
             </Button>
           </ModalFooter>

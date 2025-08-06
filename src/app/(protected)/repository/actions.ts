@@ -21,6 +21,7 @@ export type FilteredProblem = {
   timeComplexity: string;
   spaceComplexity: string;
   pseudoCode: Prisma.JsonValue | null;
+  notes: string;
 };
 
 /**
@@ -65,6 +66,7 @@ export async function getFilteredProblems(filters: ProblemFilters): Promise<Filt
           time: true,       // This is timeComplexity
           space: true,      // This is spaceComplexity
           pseudoCode: true,
+          notes: true,
         },
         take: 1, // Crucially, only take the most recent one
       },
@@ -87,6 +89,7 @@ export async function getFilteredProblems(filters: ProblemFilters): Promise<Filt
       timeComplexity: latestAnalysis?.time ?? 'N/A',
       spaceComplexity: latestAnalysis?.space ?? 'N/A',
       pseudoCode: latestAnalysis?.pseudoCode ?? null,
+      notes: latestAnalysis?.notes ?? '',
     };
   });
 }

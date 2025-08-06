@@ -15,9 +15,19 @@ import {
   Tag,
   TagLabel,
   Select,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, ArrowRight, Shuffle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Shuffle, NotebookText } from 'lucide-react';
 import { CodeWindow } from '@/app/components/CodeWindow';
 
 // --- Type Definitions ---
@@ -30,6 +40,7 @@ type MemoryCardData = {
   keyAlgorithm: string;
   pseudoCode: string[];
   domain: string;
+  notes: string; // <-- Added notes field
 };
 
 interface CardProps {
@@ -40,111 +51,158 @@ interface CardProps {
 
 // --- Single Card Component (with flip animation) ---
 function FlippableCard({ data, isFlipped, onClick }: CardProps) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const difficultyColor = {
     Easy: 'green.400',
     Medium: 'yellow.400',
     Hard: 'red.400',
   };
 
-  return (
-    <Box
-      w="100%"
-      h="100%"
-      onClick={onClick}
-      cursor="pointer"
-      style={{ perspective: '1000px' }}
-    >
-      <motion.div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          transformStyle: 'preserve-3d',
-        }}
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.7, ease: [0.4, 0.0, 0.2, 1] }}
-      >
-        {/* Front of the card */}
-        <Flex
-          position="absolute"
-          w="100%"
-          h="100%"
-          p={6}
-          bg="#2D2D2D"
-          borderRadius="xl"
-          direction="column"
-          justify="space-between"
-          align="center"
-          border="1px"
-          borderColor="rgba(255, 255, 255, 0.1)"
-          style={{ backfaceVisibility: 'hidden' }}
-        >
-          <Tag
-            size="lg"
-            colorScheme={difficultyColor[data.difficulty]?.split('.')[0] || 'gray'}
-            variant="subtle"
-          >
-            <TagLabel>{data.difficulty}</TagLabel>
-          </Tag>
-          <Heading textAlign="center" size="lg" color="whiteAlpha.900">
-            {data.name}
-          </Heading>
-          <Text color="gray.500">Click to reveal</Text>
-        </Flex>
+  // This function handles opening the notes modal and stops the card from flipping
+  const handleNotesClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card's onClick from firing
+    onOpen();
+  };
 
-        {/* Back of the card */}
-        <Flex
-          position="absolute"
-          w="100%"
-          h="100%"
-          p={6}
-          bg="#242424"
-          borderRadius="xl"
-          align="stretch"
-          justify="space-between"
-          direction="column"
-          border="1px"
-          borderColor="rgba(255, 255, 255, 0.1)"
+  const NotesButton = () => (
+    <Tooltip label="View Notes" hasArrow placement="top">
+      <IconButton
+        aria-label="View Notes"
+        icon={<NotebookText />}
+        isRound
+        size="sm"
+        variant="ghost"
+        color="gray.400"
+        position="absolute"
+        top={4}
+        right={4}
+        onClick={handleNotesClick}
+        isDisabled={!data.notes}
+        _hover={{ bg: 'whiteAlpha.200', color: 'white' }}
+      />
+    </Tooltip>
+  );
+
+  return (
+    <>
+      <Box
+        w="100%"
+        h="100%"
+        onClick={onClick}
+        cursor="pointer"
+        style={{ perspective: '1000px' }}
+      >
+        <motion.div
           style={{
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            transformStyle: 'preserve-3d',
           }}
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.7, ease: [0.4, 0.0, 0.2, 1] }}
         >
-          <Box
-            flex="1"
-            overflowY="auto"
-            p={3}
-            bg="gray.900"
-            borderRadius="md"
-            fontFamily="mono"
-            fontSize="sm"
-            color="gray.300"
+          {/* Front of the card */}
+          <Flex
+            position="absolute"
+            w="100%"
+            h="100%"
+            p={6}
+            bg="#2D2D2D"
+            borderRadius="xl"
+            direction="column"
+            justify="space-between"
+            align="center"
+            border="1px"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            style={{ backfaceVisibility: 'hidden' }}
           >
-            <CodeWindow lines={data.pseudoCode} />
-          </Box>
-          <HStack justify="space-around" pt={4}>
-            <VStack spacing={0} align="center">
-              <Text color="gray.400" fontSize="xs">Time</Text>
-              <Text color="whiteAlpha.900" fontWeight="bold">
-                {data.timeComplexity}
-              </Text>
-            </VStack>
-            <VStack spacing={0} align="center">
-              <Text color="gray.400" fontSize="xs">Space</Text>
-              <Text color="whiteAlpha.900" fontWeight="bold">
-                {data.spaceComplexity}
-              </Text>
-            </VStack>
-            <VStack spacing={0} align="center">
-              <Text color="gray.400" fontSize="xs">Algorithm</Text>
-              <Text color="whiteAlpha.900" fontWeight="bold">
-                {data.keyAlgorithm}
-              </Text>
-            </VStack>
-          </HStack>
-        </Flex>
-      </motion.div>
-    </Box>
+            <NotesButton />
+            <Tag
+              size="lg"
+              colorScheme={difficultyColor[data.difficulty]?.split('.')[0] || 'gray'}
+              variant="subtle"
+            >
+              <TagLabel>{data.difficulty}</TagLabel>
+            </Tag>
+            <Heading textAlign="center" size="lg" color="whiteAlpha.900">
+              {data.name}
+            </Heading>
+            <Text color="gray.500">Click to reveal</Text>
+          </Flex>
+
+          {/* Back of the card */}
+          <Flex
+            position="absolute"
+            w="100%"
+            h="100%"
+            p={6}
+            bg="#242424"
+            borderRadius="xl"
+            align="stretch"
+            justify="space-between"
+            direction="column"
+            border="1px"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+            }}
+          >
+            <NotesButton />
+            <Box
+              flex="1"
+              overflowY="auto"
+              p={3}
+              mt={8} // Add margin to avoid overlapping with the notes button
+              bg="gray.900"
+              borderRadius="md"
+              fontFamily="mono"
+              fontSize="sm"
+              color="gray.300"
+            >
+              <CodeWindow lines={data.pseudoCode} />
+            </Box>
+            <HStack justify="space-around" pt={4}>
+              <VStack spacing={0} align="center">
+                <Text color="gray.400" fontSize="xs">Time</Text>
+                <Text color="whiteAlpha.900" fontWeight="bold">
+                  {data.timeComplexity}
+                </Text>
+              </VStack>
+              <VStack spacing={0} align="center">
+                <Text color="gray.400" fontSize="xs">Space</Text>
+                <Text color="whiteAlpha.900" fontWeight="bold">
+                  {data.spaceComplexity}
+                </Text>
+              </VStack>
+              <VStack spacing={0} align="center">
+                <Text color="gray.400" fontSize="xs">Algorithm</Text>
+                <Text color="whiteAlpha.900" fontWeight="bold">
+                  {data.keyAlgorithm}
+                </Text>
+              </VStack>
+            </HStack>
+          </Flex>
+        </motion.div>
+      </Box>
+
+      {/* Notes Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
+        <ModalOverlay />
+        <ModalContent bg="gray.900" color="white">
+          <ModalHeader>Notes for {data.name}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text whiteSpace="pre-wrap">{data.notes}</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="purple" onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }
 
@@ -297,7 +355,6 @@ export default function MemoryCardSection() {
           </HStack>
         </HStack>
         
-        {/* ✅ Card container height increased for better visibility */}
         <Box
           h="350px"
           position="relative"

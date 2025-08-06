@@ -14,6 +14,7 @@ type MemoryCardData = {
   keyAlgorithm: string;
   pseudoCode: string[];
   domain: string;
+  notes: string;
 };
 
 // --- Zod Schema for Runtime Validation ---
@@ -78,6 +79,7 @@ export async function GET(): Promise<NextResponse> {
           keyAlgorithm: problem.keyAlgorithm,
           domain: problem.domain,
           pseudoCode: finalPseudoCode,
+          notes: latestAnalysis.notes,
         };
       });
 

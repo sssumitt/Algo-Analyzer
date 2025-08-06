@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import { parse } from "path";
 
 /* ───────────────────────── 1. Prompt template ───────────────────────── */
 const buildPrompt = (link: string, code: string) => `
@@ -166,6 +167,7 @@ export async function POST(req: NextRequest) {
 
     const keyAlgorithm = splitCamelCase(rawKeyAlgorithm);
     const domain = splitCamelCase(rawDomain);
+    parsed.tags = [domain, keyAlgorithm];
 
     let finalApproachName = parsed.approachName;
     if (finalApproachName === "Other" && parsed.approachDescription) {

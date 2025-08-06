@@ -186,6 +186,7 @@ export default function FilteredView({ allDomains, allAlgorithms }: FilteredView
                             timeComplexity={prob.timeComplexity}
                             spaceComplexity={prob.spaceComplexity}
                             pseudoCode={prob.pseudoCode as string[]}
+                            notes={prob.notes}
                           />)}
           </SimpleGrid>
         ) : (
