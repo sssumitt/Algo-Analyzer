@@ -1,9 +1,9 @@
-// src/app/api/auth/[...nextauth]/route.ts
+// src/lib/authOptions.ts
 
 import NextAuth, { AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client'; // Import the User type
 import bcrypt from 'bcrypt';
 import { nanoid } from 'nanoid';
 
@@ -68,7 +68,7 @@ export const authOptions: AuthOptions = {
           }
 
           // If user does not exist, create a new one
-          const username = user.email.split('@')[0] + '-' + nanoid(4); // e.g., 'john.doe-x4f6'
+          const username = user.email.split('@')[0] + '-' + nanoid(4);
           
           await prisma.user.create({
             data: {
@@ -91,16 +91,10 @@ export const authOptions: AuthOptions = {
     },
 
     async jwt({ token, user }) {
-      // Find the user in the database to get their ID and username
-      const dbUser = await prisma.user.findFirst({
-        where: {
-          email: token.email!, // token.email is reliable here
-        },
-      });
-
-      if (dbUser) {
-        token.id = dbUser.id;
-        token.username = dbUser.username;
+      if (user) {
+        const u = user as User; // Cast to your Prisma User type
+        token.id = u.id;
+        token.username = u.username;
       }
       return token;
     },
@@ -123,7 +117,3 @@ export const authOptions: AuthOptions = {
     signIn: '/signup',
   },
 };
-
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };

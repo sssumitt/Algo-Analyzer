@@ -69,7 +69,8 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) return;
+    // BUG FIX 3.1: Guard clause updated to check for both link and code
+    if (!link || !code) return;
     onSubmit(link, code, notes);
   };
 
@@ -81,7 +82,7 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
       h="100%" // Make the container fill the available height
       position="relative" // Needed for absolute positioning of the icon button
     >
-      <Tooltip label="Add Notes" hasArrow  placement="top">
+      <Tooltip label="Add Notes" hasArrow placement="top">
         <IconButton
           padding={3}
           aria-label="Add notes"
@@ -94,6 +95,8 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
           right={{ base: 4, md: 6 }}
           onClick={onOpen}
           _hover={{ bg: "whiteAlpha.200" }}
+          // BUG FIX 1: Disable the notes button during analysis
+          isDisabled={isLoading}
         />
       </Tooltip>
 
@@ -102,7 +105,8 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
           <Heading as="h2" size="lg">
             Submit for Analysis
           </Heading>
-          <FormControl>
+          {/* BUG FIX 2: Added isRequired to the FormControl */}
+          <FormControl isRequired>
             <FormLabel color="gray.400">Problem Link</FormLabel>
             <Input
               placeholder="e.g., https://leetcode.com/problems/two-sum/"
@@ -149,7 +153,8 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
             _hover={{
               bgGradient: "linear(to-r, purple.600, pink.600)",
             }}
-            isDisabled={!code || isLoading}
+            // BUG FIX 3.2: Disable button if link OR code is missing
+            isDisabled={!link || !code || isLoading}
           >
             Analyze
           </Button>
@@ -157,7 +162,7 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
       </form>
 
       {/* Notes Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered >
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay bg="blackAlpha.700" />
         <ModalContent bg="#1C1C1E" color="white">
           <ModalHeader>Add Your Notes</ModalHeader>

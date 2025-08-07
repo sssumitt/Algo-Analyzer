@@ -1,4 +1,5 @@
 'use client';
+
 import { Session } from 'next-auth';
 import NextLink from 'next/link';
 import { signOut } from 'next-auth/react';
@@ -23,6 +24,7 @@ import {
   DrawerOverlay,
   DrawerContent,
   VStack,
+  Button, // Import Button
 } from '@chakra-ui/react';
 import { Logo } from './Logo';
 import { FiLogOut } from 'react-icons/fi';
@@ -39,12 +41,11 @@ const NavLink = ({ href, children, onClick }: { href: string; children: React.Re
       href={href}
       px={2}
       py={1}
-      // UPDATED: Text is purple if active, otherwise gray.
       color={isActive ? 'purple.300' : 'gray.300'}
       fontWeight={isActive ? 'bold' : 'normal'}
       transition="color 0.2s ease-in-out"
       _hover={{
-        color: 'purple.300', // UPDATED: Text becomes purple on hover.
+        color: 'purple.300',
       }}
       onClick={onClick}
     >
@@ -53,17 +54,15 @@ const NavLink = ({ href, children, onClick }: { href: string; children: React.Re
   );
 };
 
-// UPDATED: It's better to pass the whole user object from the session
 interface NavbarAuthProps {
   user: Session['user'];
 }
 
 export function NavbarAuth({ user }: NavbarAuthProps) {
-  // Hook for managing the mobile navigation drawer
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   if (!user) {
-    return null; // Don't render if no user is found
+    return null;
   }
 
   return (
@@ -98,13 +97,33 @@ export function NavbarAuth({ user }: NavbarAuthProps) {
 
           {/* User Menu (Clickable Avatar) */}
           <Menu>
-            <MenuButton as={Avatar} size="sm" cursor="pointer" name={user.name ?? user.username ?? ''} src={user.image ?? ''} bg="purple.600" color="white" border="2px solid" borderColor="purple.400" />
+            {/* ✅ FIX: Use Avatar for a personalized look */}
+            <MenuButton
+              as={Button}
+              rounded={'full'}
+              variant={'link'}
+              cursor={'pointer'}
+              minW={0}
+            >
+              <Avatar
+                size={'sm'}
+                src={user.image ?? undefined}
+                name={user.name ?? user.username}
+                bg="purple.500"
+                color="white"
+              />
+            </MenuButton>
             <MenuList bg="gray.800" borderColor="whiteAlpha.200">
-              <MenuItem bg="gray.800" isDisabled>
-                <Text fontWeight="bold">{user.name ?? user.username}</Text>
+              <MenuItem bg="gray.800" _hover={{ bg: 'gray.800' }} isDisabled>
+                <Text fontWeight="bold" color="whiteAlpha.900">{user.name ?? user.username}</Text>
               </MenuItem>
               <MenuDivider borderColor="whiteAlpha.200" />
-              <MenuItem bg="gray.800" icon={<FiLogOut />} onClick={() => signOut({ callbackUrl: '/' })} _hover={{ bg: 'purple.500', color: 'white' }}>
+              <MenuItem
+                bg="gray.800"
+                icon={<FiLogOut />}
+                onClick={() => signOut({ callbackUrl: '/' })}
+                _hover={{ bg: 'purple.500', color: 'white' }}
+              >
                 Logout
               </MenuItem>
             </MenuList>
