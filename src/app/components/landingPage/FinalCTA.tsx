@@ -71,7 +71,7 @@ export function FinalCTA() {
               boxShadow: 'lg'
             }}
             transition="all 0.2s"
-            onClick={() => router.push('/signup')}
+            onClick={() => router.push('/signup?mode=register')}
           >
             Create Your Account
           </Button>

@@ -36,7 +36,7 @@ export function HeroContent() {
           rounded="full"
           bgGradient="linear(to-r, purple.400, pink.300)"
           _hover={{ bgGradient: 'linear(to-r, purple.500, pink.400)' }}
-          onClick={() => router.push('/signup')}
+          onClick={() => router.push('/signup?mode=register')}
         >
           Get Started Free
         </Button>

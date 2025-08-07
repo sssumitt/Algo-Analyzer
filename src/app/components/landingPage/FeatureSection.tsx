@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Container, SimpleGrid, Heading, Text, VStack } from '@chakra-ui/react'
+import { Box, Container, SimpleGrid, Heading, Text, VStack, Flex } from '@chakra-ui/react'
 import { Bug, Database, Share2, LineChart } from 'lucide-react'
 import { FC, ReactElement } from 'react'
 
@@ -14,6 +14,7 @@ interface FeatureCardProps {
 const FeatureCard: FC<FeatureCardProps> = ({ icon, title, desc }) => {
   return (
     <VStack
+      maxWidth={{ base: '100%', md: '300px' }} // Responsive width
       spacing={5}
       p={8}
       bg="whiteAlpha.50" // Semi-transparent background
@@ -43,7 +44,7 @@ export function FeaturesSection() {
         <Heading size="xl" mb={16} textAlign="center" color="white">
           Core Capabilities
         </Heading>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 8, md: 10 }}>
+        <Flex justify={{ base: 'center', md: 'space-between' }} wrap="wrap" gap={8}>
           <FeatureCard
             icon={<Database size={40} />}
             title="Store & Tag"
@@ -59,12 +60,12 @@ export function FeaturesSection() {
             title="Skill Insights"
             desc="Track strengths across topics with visual progress metrics."
           />
-          <FeatureCard
+          {/* <FeatureCard
             icon={<Share2 size={40} />}
             title="Knowledge Graph"
             desc="Interconnect algorithms to discover prerequisite gaps."
-          />
-        </SimpleGrid>
+          /> */}
+        </Flex>
       </Container>
     </Box>
   )

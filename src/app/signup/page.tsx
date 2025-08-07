@@ -1,4 +1,4 @@
-// src/app/signup/page.tsx  (a.k.a. auth page)
+// src/app/signup/page.tsx
 'use client';
 
 import {
@@ -17,8 +17,8 @@ import {
 } from '@chakra-ui/react';
 import { Logo } from '../components/Logo';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react'; // 👈 1. Import useEffect
 
 const API = '/api';
 
@@ -29,6 +29,18 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  console.log('Search Params:', searchParams.toString());
+
+  // 👇 2. Use useEffect to set the mode based on the URL query parameter
+  useEffect(() => {
+    const modeFromQuery = searchParams.get('mode');
+    if (modeFromQuery === 'register') {
+      setMode('register');
+    } else {
+      setMode('login');
+    }
+  }, [searchParams]); // This effect runs only when searchParams changes
 
   const isError = (e: unknown): e is Error =>
     typeof e === 'object' && e !== null && 'message' in e;
@@ -59,7 +71,7 @@ export default function AuthPage() {
 
       if (res?.error) throw new Error(res.error);
       router.push('/dashboard');
-    } catch (err: unknown) {            // ← no more `any`
+    } catch (err: unknown) {
       toast({
         title: 'Auth error',
         description: isError(err) ? err.message : 'Unexpected error',
@@ -72,6 +84,7 @@ export default function AuthPage() {
     }
   }
 
+  // The rest of your component remains the same...
   return (
     <Box
       minH="100vh"

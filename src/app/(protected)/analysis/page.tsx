@@ -1,35 +1,31 @@
 'use client';
 
-// 1. Import motion from framer-motion
 import { motion } from 'framer-motion';
 import { Box, Heading, Grid, GridItem } from '@chakra-ui/react';
 
-// Import your page components
 import PerformanceCard from '@/app/components/analysis/PerformanceCard';
 import AnalyticsCard from '@/app/components/analysis/AnalyticsSection';
-import MemoryCard from '@/app/components/analysis/MemoryCard'; // This is your MemoryCardSection
+import MemoryCard from '@/app/components/analysis/MemoryCard';
 
-// 2. Create motion-enabled Chakra components
 const MotionGrid = motion(Grid);
 const MotionGridItem = motion(GridItem);
 
 export default function LandingPage() {
-  // 3. Define animation variants for the container and items
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2, // Animate children with a 0.2s delay between them
+        staggerChildren: 0.2,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 }, // Start 20px below and invisible
+    hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
-      opacity: 1, // Animate to original position and fully visible
+      opacity: 1,
       transition: {
         duration: 0.5,
       },
@@ -37,32 +33,48 @@ export default function LandingPage() {
   };
 
   return (
-    // Use a Box for overall padding and layout
-    <Box p={{ base: 4, md: 8 }} h="100vh">
+    <Box p={{ base: 4, md: 8 }} minH="100vh">
       <Heading as="h1" size="xl" mb={6}>
         Analysis Dashboard
       </Heading>
 
-      {/* 4. Apply the variants to the motion components */}
       <MotionGrid
-        h="calc(100% - 80px)" // Adjust height to account for heading
-        templateRows="repeat(2, 1fr)"
-        templateColumns="repeat(2, 1fr)"
+        h="calc(100% - 80px)"
+        // 👇 Make the grid's columns and rows responsive
+        templateRows={{ base: 'repeat(3, 1fr)', md: 'repeat(2, 1fr)' }}
+        templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }}
         gap={6}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <MotionGridItem rowSpan={1} colSpan={1} variants={itemVariants}>
+        {/* AnalyticsCard */}
+        <MotionGridItem
+          // 👇 On mobile (base), it spans 1 column. On desktop (md), it also spans 1.
+          colSpan={{ base: 1, md: 1 }}
+          rowSpan={1}
+          variants={itemVariants}
+        >
           <AnalyticsCard />
         </MotionGridItem>
 
-        <MotionGridItem rowSpan={1} colSpan={1} variants={itemVariants}>
-          {/* Your MemoryCard component with its internal animations will work perfectly here */}
+        {/* MemoryCard */}
+        <MotionGridItem
+          // 👇 Same responsive logic for this card
+          colSpan={{ base: 1, md: 1 }}
+          rowSpan={1}
+          variants={itemVariants}
+        >
           <MemoryCard />
         </MotionGridItem>
 
-        <MotionGridItem rowSpan={1} colSpan={2} variants={itemVariants}>
+        {/* PerformanceCard */}
+        <MotionGridItem
+          // 👇 On mobile, this spans the single column. On desktop, it spans two.
+          colSpan={{ base: 1, md: 2 }}
+          rowSpan={1}
+          variants={itemVariants}
+        >
           <PerformanceCard />
         </MotionGridItem>
       </MotionGrid>
