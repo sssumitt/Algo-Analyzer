@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Box,
@@ -12,10 +12,10 @@ import {
   SimpleGrid,
   Spacer,
   chakra,
-} from '@chakra-ui/react';
-import { useEffect, useState, useMemo, useRef } from 'react';
-import { PieChart as PieChartIcon } from 'lucide-react';
-import * as d3 from 'd3';
+} from "@chakra-ui/react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { PieChart as PieChartIcon } from "lucide-react";
+import * as d3 from "d3";
 
 // --- (Type Definitions and other components remain the same) ---
 type DifficultyCounts = {
@@ -36,7 +36,12 @@ interface TopicPieChartProps {
   hoveredTopic: string | null;
 }
 
-function TopicPieChart({ data, colorScale, size, hoveredTopic }: TopicPieChartProps) {
+function TopicPieChart({
+  data,
+  colorScale,
+  size,
+  hoveredTopic,
+}: TopicPieChartProps) {
   const ref = useRef<SVGSVGElement>(null);
   const total = useMemo(() => d3.sum(data, (d) => d.total), [data]);
 
@@ -49,12 +54,15 @@ function TopicPieChart({ data, colorScale, size, hoveredTopic }: TopicPieChartPr
     const innerRadius = radius * 0.65;
 
     const g = svg
-      .selectAll('g')
+      .selectAll("g")
       .data([null])
-      .join('g')
-      .attr('transform', `translate(${size / 2}, ${size / 2})`);
+      .join("g")
+      .attr("transform", `translate(${size / 2}, ${size / 2})`);
 
-    const pie = d3.pie<TopicStats>().value((d) => d.total).sort(null);
+    const pie = d3
+      .pie<TopicStats>()
+      .value((d) => d.total)
+      .sort(null);
 
     const arcGenerator = d3
       .arc<d3.PieArcDatum<TopicStats>>()
@@ -63,33 +71,33 @@ function TopicPieChart({ data, colorScale, size, hoveredTopic }: TopicPieChartPr
       .padAngle(0.02)
       .cornerRadius(4);
 
-    g.selectAll('path')
+    g.selectAll("path")
       .data(pie(data))
       .join(
         (enter) =>
           enter
-            .append('path')
-            .attr('fill', (d) => colorScale(d.data.domain))
-            .style('opacity', 0)
+            .append("path")
+            .attr("fill", (d) => colorScale(d.data.domain))
+            .style("opacity", 0)
             .call((enter) =>
               enter
-                .transition('enter')
+                .transition("enter")
                 .duration(800)
                 .delay((d, i) => i * 80)
-                .style('opacity', 1)
-                .attrTween('d', function (d) {
+                .style("opacity", 1)
+                .attrTween("d", function (d) {
                   const i = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
                   return function (t) {
-                    return arcGenerator(i(t)) || '';
+                    return arcGenerator(i(t)) || "";
                   };
                 })
             ),
         (update) =>
           update.call((update) =>
             update
-              .transition('update')
+              .transition("update")
               .duration(300)
-              .attr('transform', (d) => {
+              .attr("transform", (d) => {
                 if (hoveredTopic === d.data.domain) {
                   const [x, y] = arcGenerator.centroid(d);
                   const angle = Math.atan2(y, x);
@@ -97,7 +105,7 @@ function TopicPieChart({ data, colorScale, size, hoveredTopic }: TopicPieChartPr
                   const ty = Math.sin(angle) * pullDistance;
                   return `translate(${tx},${ty})`;
                 }
-                return 'translate(0,0)';
+                return "translate(0,0)";
               })
           ),
         (exit) => exit.remove()
@@ -148,11 +156,16 @@ function TopicLegend({ data, colorScale, onHover }: TopicLegendProps) {
           p={2}
           borderRadius="md"
           transition="background 0.2s"
-          _hover={{ bg: 'whiteAlpha.100' }}
+          _hover={{ bg: "whiteAlpha.100" }}
           onMouseEnter={() => onHover(topic.domain)}
           onMouseLeave={() => onHover(null)}
         >
-          <Box w="8px" h="8px" bg={colorScale(topic.domain)} borderRadius="full" />
+          <Box
+            w="8px"
+            h="8px"
+            bg={colorScale(topic.domain)}
+            borderRadius="full"
+          />
           <Text fontSize="sm" color="whiteAlpha.800" noOfLines={1}>
             {topic.domain}
           </Text>
@@ -165,7 +178,6 @@ function TopicLegend({ data, colorScale, onHover }: TopicLegendProps) {
     </VStack>
   );
 }
-
 
 export default function AnalyticsSection() {
   const [analyticsData, setAnalyticsData] = useState<{
@@ -181,14 +193,14 @@ export default function AnalyticsSection() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/user/analytics');
+        const response = await fetch("/api/user/analytics");
         if (!response.ok) {
-          throw new Error('Analytics data not found');
+          throw new Error("Analytics data not found");
         }
         const result = await response.json();
         setAnalyticsData(result);
       } catch (error) {
-        console.error('Error fetching analytics data:', error);
+        console.error("Error fetching analytics data:", error);
         setAnalyticsData(null);
       } finally {
         setIsLoading(false);
@@ -228,56 +240,70 @@ export default function AnalyticsSection() {
 
   return (
     <Box
-      p={4}
+      p={{ base: 3, md: 4 }}
       bg="#1C1C1E"
       borderRadius="xl"
       w="100%"
-      minH="100%" 
+      minH={{ base: "300px", md: "100%" }}
       border="1px"
       borderColor="whiteAlpha.100"
       display="flex"
       flexDirection="column"
+      overflow="hidden"
     >
-      <Heading as="h3" size="md" color="whiteAlpha.900" mb={4}>
+      <Heading
+        as="h3"
+        size={{ base: "sm", md: "md" }}
+        color="whiteAlpha.900"
+        mb={{ base: 3, md: 4 }}
+      >
         Analytics
       </Heading>
-      
-      <Box 
-        flex="1" 
+
+      <Box
+        flex="1"
         display="flex"
         flexDirection="column"
         alignItems="center"
         justifyContent="center"
+        minW={0}
       >
         {isLoading ? (
           <Spinner color="purple.400" />
         ) : analyticsData && topTopics.length > 0 ? (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="100%" alignItems="center">
-            {/* Left Section: Chart */}
-            <Center>
+          <SimpleGrid
+            columns={{ base: 1, lg: 2 }}
+            spacing={{ base: 4, md: 6 }}
+            w="100%"
+            alignItems="center"
+            minW={0}
+          >
+            {/* Chart Section */}
+            <Center minW={0}>
               <TopicPieChart
                 data={topTopics}
                 colorScale={topicColorScale}
-                size={220}
+                size={Math.min(220, window?.innerWidth > 768 ? 220 : 180)}
                 hoveredTopic={hoveredTopic}
               />
             </Center>
 
-            {/* Right Section: Legend & Difficulty Stats */}
-            <VStack align="stretch" spacing={3}>
+            {/* Legend & Stats Section */}
+            <VStack align="stretch" spacing={3} minW={0}>
               {/* Scrollable Container for the Legend */}
               <Box
-                maxHeight="190px"
+                maxHeight={{ base: "150px", md: "190px" }}
                 overflowY="auto"
                 pr={2}
+                minW={0}
                 css={{
-                  '&::-webkit-scrollbar': { width: '6px' },
-                  '&::-webkit-scrollbar-track': { background: 'transparent' },
-                  '&::-webkit-scrollbar-thumb': {
-                    background: '#4A5568',
-                    borderRadius: '24px',
+                  "&::-webkit-scrollbar": { width: "6px" },
+                  "&::-webkit-scrollbar-track": { background: "transparent" },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "#4A5568",
+                    borderRadius: "24px",
                   },
-                  '&::-webkit-scrollbar-thumb:hover': { background: '#718096' },
+                  "&::-webkit-scrollbar-thumb:hover": { background: "#718096" },
                 }}
               >
                 <TopicLegend
@@ -287,17 +313,18 @@ export default function AnalyticsSection() {
                 />
               </Box>
               <HStack
-                spacing={3}
+                spacing={{ base: 2, md: 3 }}
                 color="gray.400"
                 justify="center"
                 w="100%"
                 wrap="wrap"
                 pt={2}
+                minW={0}
               >
                 <HStack align="center" spacing={1.5}>
                   <Box w="8px" h="8px" bg="green.400" borderRadius="full" />
                   <Text fontSize="xs">
-                    Easy:{' '}
+                    Easy:{" "}
                     <chakra.span fontWeight="bold" color="whiteAlpha.800">
                       {analyticsData.difficulties.easy}
                     </chakra.span>
@@ -306,7 +333,7 @@ export default function AnalyticsSection() {
                 <HStack align="center" spacing={1.5}>
                   <Box w="8px" h="8px" bg="yellow.400" borderRadius="full" />
                   <Text fontSize="xs">
-                    Medium:{' '}
+                    Medium:{" "}
                     <chakra.span fontWeight="bold" color="whiteAlpha.800">
                       {analyticsData.difficulties.medium}
                     </chakra.span>
@@ -315,7 +342,7 @@ export default function AnalyticsSection() {
                 <HStack align="center" spacing={1.5}>
                   <Box w="8px" h="8px" bg="red.400" borderRadius="full" />
                   <Text fontSize="xs">
-                    Hard:{' '}
+                    Hard:{" "}
                     <chakra.span fontWeight="bold" color="whiteAlpha.800">
                       {analyticsData.difficulties.hard}
                     </chakra.span>

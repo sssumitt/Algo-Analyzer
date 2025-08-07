@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
 // --- Imports ---
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
   Heading,
@@ -24,16 +24,16 @@ import {
   ModalFooter,
   Button,
   Tooltip,
-} from '@chakra-ui/react';
-import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, ArrowRight, Shuffle, NotebookText } from 'lucide-react';
-import { CodeWindow } from '@/app/components/CodeWindow';
+} from "@chakra-ui/react";
+import { useEffect, useState, useMemo } from "react";
+import { ArrowLeft, ArrowRight, Shuffle, NotebookText } from "lucide-react";
+import { CodeWindow } from "@/app/components/CodeWindow";
 
 // --- Type Definitions ---
 type MemoryCardData = {
   id: string;
   name: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: "Easy" | "Medium" | "Hard";
   timeComplexity: string;
   spaceComplexity: string;
   keyAlgorithm: string;
@@ -53,9 +53,9 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const difficultyColor = {
-    Easy: 'green.400',
-    Medium: 'yellow.400',
-    Hard: 'red.400',
+    Easy: "green.400",
+    Medium: "yellow.400",
+    Hard: "red.400",
   };
 
   // This function handles opening the notes modal and stops the card from flipping
@@ -78,7 +78,7 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
         right={4}
         onClick={handleNotesClick}
         isDisabled={!data.notes}
-        _hover={{ bg: 'whiteAlpha.200', color: 'white' }}
+        _hover={{ bg: "whiteAlpha.200", color: "white" }}
       />
     </Tooltip>
   );
@@ -90,14 +90,14 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
         h="100%"
         onClick={onClick}
         cursor="pointer"
-        style={{ perspective: '1000px' }}
+        style={{ perspective: "1000px" }}
       >
         <motion.div
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            transformStyle: 'preserve-3d',
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            transformStyle: "preserve-3d",
           }}
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.7, ease: [0.4, 0.0, 0.2, 1] }}
@@ -115,12 +115,14 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
             align="center"
             border="1px"
             borderColor="rgba(255, 255, 255, 0.1)"
-            style={{ backfaceVisibility: 'hidden' }}
+            style={{ backfaceVisibility: "hidden" }}
           >
             <NotesButton />
             <Tag
               size="lg"
-              colorScheme={difficultyColor[data.difficulty]?.split('.')[0] || 'gray'}
+              colorScheme={
+                difficultyColor[data.difficulty]?.split(".")[0] || "gray"
+              }
               variant="subtle"
             >
               <TagLabel>{data.difficulty}</TagLabel>
@@ -145,8 +147,8 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
             border="1px"
             borderColor="rgba(255, 255, 255, 0.1)"
             style={{
-              backfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg)',
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
             }}
           >
             <NotesButton />
@@ -165,19 +167,25 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
             </Box>
             <HStack justify="space-around" pt={4}>
               <VStack spacing={0} align="center">
-                <Text color="gray.400" fontSize="xs">Time</Text>
+                <Text color="gray.400" fontSize="xs">
+                  Time
+                </Text>
                 <Text color="whiteAlpha.900" fontWeight="bold">
                   {data.timeComplexity}
                 </Text>
               </VStack>
               <VStack spacing={0} align="center">
-                <Text color="gray.400" fontSize="xs">Space</Text>
+                <Text color="gray.400" fontSize="xs">
+                  Space
+                </Text>
                 <Text color="whiteAlpha.900" fontWeight="bold">
                   {data.spaceComplexity}
                 </Text>
               </VStack>
               <VStack spacing={0} align="center">
-                <Text color="gray.400" fontSize="xs">Algorithm</Text>
+                <Text color="gray.400" fontSize="xs">
+                  Algorithm
+                </Text>
                 <Text color="whiteAlpha.900" fontWeight="bold">
                   {data.keyAlgorithm}
                 </Text>
@@ -197,7 +205,9 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
             <Text whiteSpace="pre-wrap">{data.notes}</Text>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="purple" onClick={onClose}>Close</Button>
+            <Button colorScheme="purple" onClick={onClose}>
+              Close
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -207,7 +217,6 @@ function FlippableCard({ data, isFlipped, onClick }: CardProps) {
 
 // --- Motion-wrapped Box component ---
 const MotionBox = motion(Box);
-
 
 // --- Main Memory Card Section Component ---
 export default function MemoryCardSection() {
@@ -219,7 +228,7 @@ export default function MemoryCardSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [direction, setDirection] = useState(0);
-  const [selectedDomain, setSelectedDomain] = useState('All');
+  const [selectedDomain, setSelectedDomain] = useState("All");
 
   // --- Data Fetching and Filtering ---
   useEffect(() => {
@@ -227,9 +236,11 @@ export default function MemoryCardSection() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/user/memory-cards');
+        const response = await fetch("/api/user/memory-cards");
         if (!response.ok) {
-          throw new Error(`API error: ${response.status} ${response.statusText}`);
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`
+          );
         }
         const data: MemoryCardData[] = await response.json();
         setAllCards(data);
@@ -251,24 +262,25 @@ export default function MemoryCardSection() {
 
   const domains = useMemo(() => {
     const uniqueDomains = new Set(allCards.map((card) => card.domain));
-    return ['All', ...Array.from(uniqueDomains)];
+    return ["All", ...Array.from(uniqueDomains)];
   }, [allCards]);
 
   useEffect(() => {
     setIsFlipped(false);
-    if (selectedDomain === 'All') {
+    if (selectedDomain === "All") {
       setFilteredCards(allCards);
     } else {
-      setFilteredCards(allCards.filter((card) => card.domain === selectedDomain));
+      setFilteredCards(
+        allCards.filter((card) => card.domain === selectedDomain)
+      );
     }
     setCurrentIndex(0);
   }, [selectedDomain, allCards]);
 
-
   // --- Animation and Navigation Logic ---
   const cardVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? '100%' : '-100%',
+      x: direction > 0 ? "100%" : "-100%",
       opacity: 0,
     }),
     center: {
@@ -278,7 +290,7 @@ export default function MemoryCardSection() {
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? '100%' : '-100%',
+      x: direction < 0 ? "100%" : "-100%",
       opacity: 0,
     }),
   };
@@ -291,7 +303,9 @@ export default function MemoryCardSection() {
     if (newDirection > 0) {
       setCurrentIndex((prev) => (prev + 1) % filteredCards.length);
     } else {
-      setCurrentIndex((prev) => (prev - 1 + filteredCards.length) % filteredCards.length);
+      setCurrentIndex(
+        (prev) => (prev - 1 + filteredCards.length) % filteredCards.length
+      );
     }
   };
 
@@ -301,66 +315,89 @@ export default function MemoryCardSection() {
     setDirection(1);
 
     const shuffled = [...filteredCards].sort(() => Math.random() - 0.5);
-    if (shuffled.length > 1 && shuffled[0].id === filteredCards[currentIndex]?.id) {
-        [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+    if (
+      shuffled.length > 1 &&
+      shuffled[0].id === filteredCards[currentIndex]?.id
+    ) {
+      [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
     }
     setFilteredCards(shuffled);
     setCurrentIndex(0);
   };
 
-
   // --- JSX Rendering ---
   return (
     <Box
-      p={{ base: 5, md: 6 }}
+      p={{ base: 3, md: 6 }}
       bg="#1C1C1E"
       borderRadius="xl"
       w="100%"
+      minH={{ base: "350px", md: "400px" }}
       border="1px"
       borderColor="whiteAlpha.100"
+      overflow="hidden"
     >
-      <VStack align="stretch" spacing={5}>
-        <HStack justify="space-between" wrap="wrap" gap={2}>
-          <Heading as="h3" size="md" color="whiteAlpha.900">
+      <VStack align="stretch" spacing={{ base: 3, md: 5 }} minW={0}>
+        <HStack
+          justify="space-between"
+          wrap={{ base: "wrap", md: "nowrap" }}
+          gap={2}
+          minW={0}
+        >
+          <Heading
+            as="h3"
+            size={{ base: "sm", md: "md" }}
+            color="whiteAlpha.900"
+            flexShrink={0}
+          >
             Memory Cards
           </Heading>
-          <HStack>
+          <HStack flexShrink={0} minW={0}>
             <Select
-              size="sm"
+              size={{ base: "xs", md: "sm" }}
               borderRadius="md"
               value={selectedDomain}
               onChange={(e) => setSelectedDomain(e.target.value)}
               bg="gray.800"
               borderColor="gray.700"
-              _hover={{ borderColor: 'gray.600' }}
-              _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #B794F4' }}
+              _hover={{ borderColor: "gray.600" }}
+              _focus={{
+                borderColor: "purple.400",
+                boxShadow: "0 0 0 1px #B794F4",
+              }}
               isDisabled={isLoading || !!error}
+              maxW={{ base: "120px", md: "150px" }}
             >
               {domains.map((domain) => (
-                <option key={domain} value={domain}>{domain}</option>
+                <option key={domain} value={domain}>
+                  {domain}
+                </option>
               ))}
             </Select>
             <Text
               color="gray.400"
-              fontSize="sm"
+              fontSize={{ base: "xs", md: "sm" }}
               flexShrink={0}
-              w="55px"
+              w={{ base: "45px", md: "55px" }}
               textAlign="right"
             >
               {isLoading
-                ? '...'
-                : `${filteredCards.length > 0 ? currentIndex + 1 : 0} / ${filteredCards.length}`}
+                ? "..."
+                : `${filteredCards.length > 0 ? currentIndex + 1 : 0} / ${
+                    filteredCards.length
+                  }`}
             </Text>
           </HStack>
         </HStack>
-        
+
         <Box
-          h="350px"
+          h={{ base: "280px", md: "350px" }}
           position="relative"
           display="flex"
           alignItems="center"
           justifyContent="center"
           overflow="hidden"
+          minW={0}
         >
           {isLoading ? (
             <Spinner color="purple.400" />
@@ -378,7 +415,7 @@ export default function MemoryCardSection() {
                 animate="center"
                 exit="exit"
                 transition={{
-                  x: { type: 'spring', stiffness: 300, damping: 30 },
+                  x: { type: "spring", stiffness: 300, damping: 30 },
                   opacity: { duration: 0.2 },
                 }}
                 position="absolute"
@@ -392,23 +429,27 @@ export default function MemoryCardSection() {
             </AnimatePresence>
           ) : (
             <Text color="gray.500">
-              {allCards.length > 0 ? `No cards found for "${selectedDomain}".` : 'No memory cards available.'}
+              {allCards.length > 0
+                ? `No cards found for "${selectedDomain}".`
+                : "No memory cards available."}
             </Text>
           )}
         </Box>
 
-        <HStack justify="center" spacing={4}>
+        <HStack justify="center" spacing={{ base: 3, md: 4 }}>
           <IconButton
             aria-label="Previous card"
             icon={<ArrowLeft />}
-            isRound size="lg"
+            isRound
+            size={{ base: "md", md: "lg" }}
             onClick={() => changeCard(-1)}
             isDisabled={isLoading || !!error || filteredCards.length < 2}
           />
           <IconButton
             aria-label="Shuffle deck"
             icon={<Shuffle />}
-            isRound size="lg"
+            isRound
+            size={{ base: "md", md: "lg" }}
             onClick={shuffleCards}
             isDisabled={isLoading || !!error || filteredCards.length < 2}
             colorScheme="purple"
@@ -416,7 +457,8 @@ export default function MemoryCardSection() {
           <IconButton
             aria-label="Next card"
             icon={<ArrowRight />}
-            isRound size="lg"
+            isRound
+            size={{ base: "md", md: "lg" }}
             onClick={() => changeCard(1)}
             isDisabled={isLoading || !!error || filteredCards.length < 2}
           />

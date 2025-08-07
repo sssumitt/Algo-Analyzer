@@ -1,83 +1,73 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { Box, Heading, Grid, GridItem } from '@chakra-ui/react';
+// Removed `motion` from framer-motion import
+import { Box, Heading, Grid, GridItem } from "@chakra-ui/react";
 
-import PerformanceCard from '@/app/components/analysis/PerformanceCard';
-import AnalyticsCard from '@/app/components/analysis/AnalyticsSection';
-import MemoryCard from '@/app/components/analysis/MemoryCard';
+// Assuming these components exist and are styled correctly
+import PerformanceCard from "@/app/components/analysis/PerformanceCard";
+import AnalyticsCard from "@/app/components/analysis/AnalyticsSection";
+import MemoryCard from "@/app/components/analysis/MemoryCard";
 
-const MotionGrid = motion(Grid);
-const MotionGridItem = motion(GridItem);
+// MotionGrid and MotionGridItem definitions are no longer needed
 
 export default function LandingPage() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5,
-      },
-    },
-  };
+  // Animation variants are no longer needed
+  // const containerVariants = { ... };
+  // const itemVariants = { ... };
 
   return (
-    <Box p={{ base: 4, md: 8 }} minH="100vh">
-      <Heading as="h1" size="xl" mb={6}>
-        Analysis Dashboard
-      </Heading>
-
-      <MotionGrid
-        h="calc(100% - 80px)"
-        // 👇 Make the grid's columns and rows responsive
-        templateRows={{ base: 'repeat(3, 1fr)', md: 'repeat(2, 1fr)' }}
-        templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }}
-        gap={6}
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* AnalyticsCard */}
-        <MotionGridItem
-          // 👇 On mobile (base), it spans 1 column. On desktop (md), it also spans 1.
-          colSpan={{ base: 1, md: 1 }}
-          rowSpan={1}
-          variants={itemVariants}
+    <Box
+      w="100vw"
+      minH="100vh"
+      overflowX="hidden"
+      p={{ base: 3, sm: 4, md: 6, lg: 8 }}
+    >
+      <Box maxW="100%" mx="auto">
+        <Heading
+          as="h1"
+          size={{ base: "lg", md: "xl" }}
+          mb={{ base: 4, md: 6 }}
+          textAlign={{ base: "center", md: "left" }}
         >
-          <AnalyticsCard />
-        </MotionGridItem>
+          Analysis Dashboard
+        </Heading>
 
-        {/* MemoryCard */}
-        <MotionGridItem
-          // 👇 Same responsive logic for this card
-          colSpan={{ base: 1, md: 1 }}
-          rowSpan={1}
-          variants={itemVariants}
+        {/* Mobile-first responsive grid */}
+        <Grid
+          w="100%"
+          templateColumns={{
+            base: "1fr",
+            lg: "repeat(2, 1fr)",
+          }}
+          templateRows={{
+            base: "auto auto auto",
+            lg: "auto auto",
+          }}
+          gap={{ base: 4, md: 6 }}
         >
-          <MemoryCard />
-        </MotionGridItem>
+          {/* Analytics Card - Full width on mobile, left column on desktop */}
+          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1} w="100%" minW={0}>
+            <Box w="100%" h="100%">
+              <AnalyticsCard />
+            </Box>
+          </GridItem>
 
-        {/* PerformanceCard */}
-        <MotionGridItem
-          // 👇 On mobile, this spans the single column. On desktop, it spans two.
-          colSpan={{ base: 1, md: 2 }}
-          rowSpan={1}
-          variants={itemVariants}
-        >
-          <PerformanceCard />
-        </MotionGridItem>
-      </MotionGrid>
+          {/* Memory Card - Full width on mobile, right column on desktop */}
+          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1} w="100%" minW={0}>
+            <Box w="100%" h="100%">
+              <MemoryCard />
+            </Box>
+          </GridItem>
+
+          {/* Performance Card - Full width on all screens, spans both columns on desktop */}
+          <GridItem colSpan={{ base: 1, lg: 2 }} rowSpan={1} w="100%" minW={0}>
+            <Box w="100%" h="100%">
+              <PerformanceCard />
+            </Box>
+          </GridItem>
+        </Grid>
+      </Box>
     </Box>
   );
 }
+
