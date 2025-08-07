@@ -232,7 +232,6 @@ export default function AnalyticsSection() {
       bg="#1C1C1E"
       borderRadius="xl"
       w="100%"
-      // ✅ THE ONLY CHANGE IS HERE
       minH="100%" 
       border="1px"
       borderColor="whiteAlpha.100"

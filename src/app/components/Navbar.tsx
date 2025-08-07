@@ -60,12 +60,10 @@ export function Navbar() {
             <Text as={NextLink} href="/analysis" color="gray.300" _hover={{ color: 'purple.300' }} fontSize="lg">
               Analysis
             </Text>
-            <Button as={NextLink} href="/signup?mode=login" variant="ghost" _hover={{ bg: 'whiteAlpha.200' }}>
-              Login
-            </Button>
+           
             <Button
               as={NextLink}
-              href="/signup?mode=register"
+              href="/signup"
               colorScheme="purple"
               bgGradient="linear(to-r, purple.400, pink.400)"
               _hover={{
@@ -102,10 +100,7 @@ export function Navbar() {
               <Text as={NextLink} href="/analysis" onClick={onClose} fontSize="lg">
                 Analysis
               </Text>
-              <Button as={NextLink} href="/signup?mode=login" variant="outline" colorScheme="purple" onClick={onClose}>
-                Login
-              </Button>
-              <Button as={NextLink} href="/signup?mode=register" colorScheme="purple" onClick={onClose}>
+              <Button as={NextLink} href="/signup" colorScheme="purple" onClick={onClose}>
                 Sign Up
               </Button>
             </VStack>

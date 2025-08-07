@@ -17,7 +17,6 @@ import {
   HStack,
   Wrap,
   WrapItem,
-  Center,
 } from '@chakra-ui/react';
 import { getFilteredProblems, FilteredProblem, ProblemFilters } from '../actions';
 import ProblemCard from '@/app/components/ProblemCard';

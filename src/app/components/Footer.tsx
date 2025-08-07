@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Container, Text, HStack, VStack, IconButton, Tooltip, Flex } from '@chakra-ui/react';
-import { Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin } from 'lucide-react';
 
 export function Footer() {
   return (

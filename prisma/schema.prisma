@@ -10,9 +10,8 @@ datasource db {
 /// ───────────────────────── EXISTING MODEL ────────────────────────────
 model User {
   id           String    @id @default(uuid())
-  username     String    @unique
-  email        String?   @unique
-  passwordHash String
+  username     String    
+  email        String    @unique
   createdAt    DateTime  @default(now())
   problems     Problem[]
 }

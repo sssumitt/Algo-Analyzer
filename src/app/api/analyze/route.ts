@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
-import { parse } from "path";
+
 
 /* ───────────────────────── 1. Prompt template ───────────────────────── */
 const buildPrompt = (link: string, code: string) => `
@@ -64,8 +64,6 @@ const cleanBigOString = (str: string) => {
 /* ───────────────────────── 3. API Route ─────────────────────────────── */
 export async function POST(req: NextRequest) {
   try {
-    /* 3-A. Validate body */
-    // --- UPDATED: 'notes' is now expected in the request body ---
     const { link, code, notes } = (await req.json()) as { link: string; code: string; notes: string };
     if (!link || !code)
       return NextResponse.json(
@@ -85,7 +83,6 @@ export async function POST(req: NextRequest) {
         id: userId,
         username: session.user.name ?? userId,
         email: session.user.email ?? null,
-        passwordHash: "",
       },
       update: {},
     });

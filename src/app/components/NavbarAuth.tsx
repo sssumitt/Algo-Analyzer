@@ -97,7 +97,6 @@ export function NavbarAuth({ user }: NavbarAuthProps) {
 
           {/* User Menu (Clickable Avatar) */}
           <Menu>
-            {/* ✅ FIX: Use Avatar for a personalized look */}
             <MenuButton
               as={Button}
               rounded={'full'}
