@@ -59,25 +59,32 @@ export default function ProblemCard({
   const { isOpen: isPseudoCodeOpen, onOpen: onPseudoCodeOpen, onClose: onPseudoCodeClose } = useDisclosure();
   const { isOpen: isNotesOpen, onOpen: onNotesOpen, onClose: onNotesClose } = useDisclosure();
   
+  // --- THIS IS THE FIX ---
+  // 'currentNotes' holds the live version of the notes on the client.
+  // 'editedNotes' is a temporary state for the text area.
+  const [currentNotes, setCurrentNotes] = useState(notes);
   const [editedNotes, setEditedNotes] = useState(notes);
   const [isPending, startTransition] = useTransition();
   const toast = useToast();
 
   const handleSaveNotes = () => {
-    if (editedNotes === notes) {
-      return; // Do nothing if notes haven't changed
+    // Optimization: check against the live state, not the initial prop.
+    if (editedNotes === currentNotes) {
+      return;
     }
 
     startTransition(async () => {
       const result = await updateAnalysisNotes({ analysisId, newNotes: editedNotes });
       if (result.success) {
+        // --- THIS IS THE FIX ---
+        // Update the live client-side state with the newly saved notes.
+        setCurrentNotes(editedNotes); 
         toast({
           title: 'Notes saved successfully!',
           variant: 'subtle',
           colorScheme: 'purple',
           isClosable: true,
         });
-        // The modal no longer closes automatically.
       } else {
         toast({ title: 'Error updating notes', description: result.error, status: 'error', isClosable: true });
       }
@@ -85,11 +92,12 @@ export default function ProblemCard({
   };
 
   const handleOpenNotes = () => {
-    setEditedNotes(notes);
+    // When opening, set the editor's text to the current live state.
+    setEditedNotes(currentNotes);
     onNotesOpen();
   };
   
-  const notesHaveChanged = editedNotes !== notes;
+  const notesHaveChanged = editedNotes !== currentNotes;
 
   const cardBg = '#0e0f14';
   const cardHoverBg = '#16181d';
@@ -145,7 +153,7 @@ export default function ProblemCard({
               bg="gray.800" 
               _focus={{ borderColor: 'purple.400' }}
               placeholder="Enter any notes, thoughts, or reflections..."
-              whiteSpace="pre" // <-- THIS IS THE CHANGE
+              whiteSpace="pre"
               overflowX="auto"
               sx={{
                 '&::-webkit-scrollbar': {
