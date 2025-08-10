@@ -64,6 +64,7 @@ export default async function CollectionPage({ params }: PageProps) {
               <ProblemCard
                 key={prob.id}
                 href={prob.url}
+                analysisId={a.id} // Pass the analysis ID
                 title={prob.name}
                 difficulty={prob.difficulty as 'Easy' | 'Medium' | 'Hard'}
                 timeComplexity={a.time}

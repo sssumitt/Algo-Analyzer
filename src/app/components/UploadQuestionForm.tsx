@@ -69,6 +69,7 @@ export default function UploadQuestionForm({ onSubmit }: UploadQuestionFormProps
             borderColor="gray.600"
             _placeholder={{ color: 'gray.400' }}
             fontFamily="mono"
+            
           />
         </FormControl>
 

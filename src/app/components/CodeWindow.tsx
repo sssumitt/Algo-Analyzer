@@ -21,6 +21,13 @@ export function CodeWindow({ lines }: { lines: string[] }) {
       maxH="280px"
       maxW="100%"
       whiteSpace="pre"          /* keep indentation */
+      sx={{
+                '&::-webkit-scrollbar': {
+                  display: 'none', // For Chrome, Safari, and Opera
+                },
+                msOverflowStyle: 'none', // For Internet Explorer and Edge
+                scrollbarWidth: 'none', // For Firefox
+              }}
     >
       <chakra.pre m={0}>{lines.join('\n')}</chakra.pre>
     </Box>

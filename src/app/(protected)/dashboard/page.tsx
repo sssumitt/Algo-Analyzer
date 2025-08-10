@@ -143,6 +143,15 @@ function UploadQuestionForm({ onSubmit, isLoading }: UploadQuestionFormProps) {
               fontSize="sm"
               flexGrow={1}
               resize="none"
+              whiteSpace="pre" // <-- THIS IS THE CHANGE
+              overflowX="auto"
+              sx={{
+                '&::-webkit-scrollbar': {
+                  display: 'none', // For Chrome, Safari, and Opera
+                },
+                msOverflowStyle: 'none', // For Internet Explorer and Edge
+                scrollbarWidth: 'none', // For Firefox
+              }}
             />
           </FormControl>
           <Button

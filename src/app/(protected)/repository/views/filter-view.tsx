@@ -180,6 +180,7 @@ export default function FilteredView({ allDomains, allAlgorithms }: FilteredView
             {results.map((prob) => <ProblemCard
                             key={prob.id}
                             href={prob.url}
+                            analysisId={prob.analysisId}
                             title={prob.title}
                             difficulty={prob.difficulty as 'Easy' | 'Medium' | 'Hard'}
                             timeComplexity={prob.timeComplexity}

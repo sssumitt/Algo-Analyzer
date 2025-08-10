@@ -1,6 +1,7 @@
 // src/app/(protected)/repository/actions.ts
-'use server'; // This is a Server Action
+'use server';
 
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/authOptions';
 import { getServerSession } from 'next-auth';
@@ -15,6 +16,7 @@ export interface ProblemFilters {
 // Define the shape of the data we will return for the card component
 export type FilteredProblem = {
   id: string;
+  analysisId: string; // <-- Added analysisId
   url: string;
   title: string;
   difficulty: string;
@@ -25,67 +27,53 @@ export type FilteredProblem = {
 };
 
 /**
- * Fetches problems from the database based on selected filters,
- * including data from the latest analysis for each problem.
- * This function runs only on the server.
- * @param filters - An object containing arrays of selected domains and algorithms.
- * @returns A promise that resolves to an array of problems formatted for the display card.
+ * Fetches problems from the database based on selected filters.
  */
 export async function getFilteredProblems(filters: ProblemFilters): Promise<FilteredProblem[]> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return [];
   }
-
-  // Construct the Prisma 'where' clause dynamically based on the filters
   const whereClause: Prisma.ProblemWhereInput = {
     userId: session.user.id,
   };
-
   if (filters.domains && filters.domains.length > 0) {
     whereClause.domain = { in: filters.domains };
   }
-
   if (filters.algorithms && filters.algorithms.length > 0) {
     whereClause.keyAlgorithm = { in: filters.algorithms };
   }
 
-  // Fetch problems and include the LATEST analysis for each one
   const problemsWithAnalyses = await prisma.problem.findMany({
     where: whereClause,
     select: {
       id: true,
       url: true,
-      name: true, // This corresponds to 'title'
+      name: true,
       difficulty: true,
       analyses: {
-        orderBy: {
-          createdAt: 'desc', // Order analyses by date to get the most recent
-        },
+        orderBy: { createdAt: 'desc' },
         select: {
-          time: true,       // This is timeComplexity
-          space: true,      // This is spaceComplexity
+          id: true, // <-- Select the analysis ID
+          time: true,
+          space: true,
           pseudoCode: true,
           notes: true,
         },
-        take: 1, // Crucially, only take the most recent one
+        take: 1,
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' },
   });
 
-  // Map the nested data structure from Prisma to the flat structure our component expects
   return problemsWithAnalyses.map(problem => {
-    const latestAnalysis = problem.analyses[0]; // We only took one, so it's the first in the array
-
+    const latestAnalysis = problem.analyses[0];
     return {
       id: problem.id,
+      analysisId: latestAnalysis?.id ?? '', // <-- Return the analysis ID
       url: problem.url,
       title: problem.name,
       difficulty: problem.difficulty,
-      // Provide fallback values in case a problem somehow has no analysis
       timeComplexity: latestAnalysis?.time ?? 'N/A',
       spaceComplexity: latestAnalysis?.space ?? 'N/A',
       pseudoCode: latestAnalysis?.pseudoCode ?? null,
@@ -94,32 +82,73 @@ export async function getFilteredProblems(filters: ProblemFilters): Promise<Filt
   });
 }
 
-
 /**
  * Fetches all unique domains and algorithms for the currently logged-in user.
- * This is used to populate the filter options in the UI.
- * @returns A promise that resolves to an object containing arrays of unique domains and algorithms.
  */
 export async function getFilterOptions() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return { domains: [], algorithms: [] };
+    return { domainOptions: [], algorithmOptions: [] };
   }
   const userId = session.user.id;
-
   const domainOptions = await prisma.problem.findMany({
-    where: { userId }, // Filter by the current user
+    where: { userId },
     distinct: ['domain'],
     select: { domain: true },
     orderBy: { domain: 'asc' },
-  }).then(items => items.map(item => item.domain).filter(Boolean) as string[]); // Ensure no null/empty values
-
+  }).then(items => items.map(item => item.domain).filter(Boolean) as string[]);
   const algorithmOptions = await prisma.problem.findMany({
-    where: { userId }, // Filter by the current user
+    where: { userId },
     distinct: ['keyAlgorithm'],
     select: { keyAlgorithm: true },
     orderBy: { keyAlgorithm: 'asc' },
-  }).then(items => items.map(item => item.keyAlgorithm).filter(Boolean) as string[]); // Ensure no null/empty values
-
+  }).then(items => items.map(item => item.keyAlgorithm).filter(Boolean) as string[]);
   return { domainOptions, algorithmOptions };
+}
+
+/**
+ * Updates the notes for a specific analysis.
+ * Ensures that only the owner of the problem can update the notes.
+ * @param analysisId - The ID of the analysis record to update.
+ * @param newNotes - The new content for the notes.
+ * @returns An object indicating success or failure.
+ */
+export async function updateAnalysisNotes({
+  analysisId,
+  newNotes,
+}: {
+  analysisId: string;
+  newNotes: string;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return { error: 'Not authenticated' };
+  }
+  const userId = session.user.id;
+
+  try {
+    // First, verify that the analysis belongs to the user to prevent unauthorized edits.
+    const analysis = await prisma.analysis.findUnique({
+      where: { id: analysisId },
+      select: { problem: { select: { userId: true } } },
+    });
+
+    if (!analysis || analysis.problem.userId !== userId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // If authorized, update the notes.
+    await prisma.analysis.update({
+      where: { id: analysisId },
+      data: { notes: newNotes },
+    });
+
+    // Revalidate the repository path to show the updated data immediately.
+    revalidatePath('/repository');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating notes:', error);
+    return { error: 'Could not update notes.' };
+  }
 }
