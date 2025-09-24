@@ -3,6 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
+import { Client } from "@upstash/qstash";
+import type { AnalysisPayload } from "@/types/analysisTypes";
 
 
 /* ───────────────────────── 1. Prompt template ───────────────────────── */
@@ -31,7 +33,7 @@ ${code}
 `;
 
 /* Gemini config */
-const MODEL_ID = "gemini-2.5-pro";
+const MODEL_ID = "gemini-2.5-flash";
 const MAX_RETRIES_MS = [250, 500, 1000] as const;
 
 /* ───────────────────────── 2. Helpers ──────────────────────────────── */
@@ -77,15 +79,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     const userId = session.user.id;
 
-    await prisma.user.upsert({
-      where: { id: userId },
-      create: {
-        id: userId,
-        username: session.user.name ?? userId,
-        email: session.user.email ?? null,
-      },
-      update: {},
-    });
+    // await prisma.user.upsert({
+    //   where: { id: userId },
+    //   create: {
+    //     id: userId,
+    //     username: session.user.name ?? userId,
+    //     email: session.user.email ?? null,
+    //   },
+    //   update: {},
+    // });
 
     /* 3-C. Init Gemini */
     const apiKey = process.env.GEMINI_API_KEY;
@@ -174,50 +176,82 @@ export async function POST(req: NextRequest) {
     const timeComplexity = cleanBigOString(parsed.time);
     const spaceComplexity = cleanBigOString(parsed.space);
 
-    /* 3-G. Persist Data */
-    const existingProblem = await prisma.problem.findUnique({
-      where: {
-        userId_url_approachName: {
-          userId: userId,
-          url: link,
-          approachName: finalApproachName,
-        },
-      },
-    });
+    /* 3-G. Persist Data  using queue */ 
 
-    const analysisData = {
-      pseudoCode: parsed.pseudoCode,
-      time: timeComplexity,
-      space: spaceComplexity,
-      tags: [domain, keyAlgorithm],
+    // const existingProblem = await prisma.problem.findUnique({
+    //   where: {
+    //     userId_url_approachName: {
+    //       userId: userId,
+    //       url: link,
+    //       approachName: finalApproachName,
+    //     },
+    //   },
+    // });
+
+    // const analysisData = {
+    //   pseudoCode: parsed.pseudoCode,
+    //   time: timeComplexity,
+    //   space: spaceComplexity,
+    //   tags: [domain, keyAlgorithm],
+    //   notes: notes ?? "",
+    // };
+
+    // if (existingProblem) {
+    //   await prisma.problem.update({
+    //     where: { id: existingProblem.id },
+    //     data: {
+    //       name: parsed.name,
+    //       domain: domain,
+    //       keyAlgorithm: keyAlgorithm,
+    //       difficulty: parsed.difficulty,
+    //       analyses: { create: [analysisData] },
+    //     },
+    //   });
+    // } else {
+    //   await prisma.problem.create({
+    //     data: {
+    //       url: link,
+    //       name: parsed.name,
+    //       domain: domain,
+    //       keyAlgorithm: keyAlgorithm,
+    //       difficulty: parsed.difficulty,
+    //       approachName: finalApproachName,
+    //       userId: userId,
+    //       analyses: { create: [analysisData] },
+    //     },
+    //   });
+    // }
+
+    const payload: AnalysisPayload = {
+      userId,
+      userDetails: {
+        name: session.user.name ?? userId,
+        email: session.user.email ?? null,
+      },
+      link,
       notes: notes ?? "",
+      analysisData: {
+        name: parsed.name,
+        approachName: finalApproachName,
+        pseudoCode: parsed.pseudoCode,
+        time: timeComplexity,
+        space: spaceComplexity,
+        tags: [domain, keyAlgorithm],
+        difficulty: parsed.difficulty,
+      },
     };
 
-    if (existingProblem) {
-      await prisma.problem.update({
-        where: { id: existingProblem.id },
-        data: {
-          name: parsed.name,
-          domain: domain,
-          keyAlgorithm: keyAlgorithm,
-          difficulty: parsed.difficulty,
-          analyses: { create: [analysisData] },
-        },
-      });
-    } else {
-      await prisma.problem.create({
-        data: {
-          url: link,
-          name: parsed.name,
-          domain: domain,
-          keyAlgorithm: keyAlgorithm,
-          difficulty: parsed.difficulty,
-          approachName: finalApproachName,
-          userId: userId,
-          analyses: { create: [analysisData] },
-        },
-      });
-    }
+
+      const qstashClient = new Client({
+      token: process.env.QSTASH_TOKEN!,
+    });
+
+    // ✅ Publish the job to your consumer's URL
+    await qstashClient.publishJSON({
+      // Use absolute URL. VERCEL_URL is automatically set in production.
+      url: `${process.env.VERCEL_URL || 'http://localhost:8080'}/api/queue/db-writer-queue`,
+      body: payload,
+    });
 
     /* 3-H. Return */
     return NextResponse.json({
