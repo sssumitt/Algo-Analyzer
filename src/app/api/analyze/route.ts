@@ -79,16 +79,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     const userId = session.user.id;
 
-    // await prisma.user.upsert({
-    //   where: { id: userId },
-    //   create: {
-    //     id: userId,
-    //     username: session.user.name ?? userId,
-    //     email: session.user.email ?? null,
-    //   },
-    //   update: {},
-    // });
-
     /* 3-C. Init Gemini */
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY env variable is missing");
@@ -178,49 +168,7 @@ export async function POST(req: NextRequest) {
 
     /* 3-G. Persist Data  using queue */ 
 
-    // const existingProblem = await prisma.problem.findUnique({
-    //   where: {
-    //     userId_url_approachName: {
-    //       userId: userId,
-    //       url: link,
-    //       approachName: finalApproachName,
-    //     },
-    //   },
-    // });
 
-    // const analysisData = {
-    //   pseudoCode: parsed.pseudoCode,
-    //   time: timeComplexity,
-    //   space: spaceComplexity,
-    //   tags: [domain, keyAlgorithm],
-    //   notes: notes ?? "",
-    // };
-
-    // if (existingProblem) {
-    //   await prisma.problem.update({
-    //     where: { id: existingProblem.id },
-    //     data: {
-    //       name: parsed.name,
-    //       domain: domain,
-    //       keyAlgorithm: keyAlgorithm,
-    //       difficulty: parsed.difficulty,
-    //       analyses: { create: [analysisData] },
-    //     },
-    //   });
-    // } else {
-    //   await prisma.problem.create({
-    //     data: {
-    //       url: link,
-    //       name: parsed.name,
-    //       domain: domain,
-    //       keyAlgorithm: keyAlgorithm,
-    //       difficulty: parsed.difficulty,
-    //       approachName: finalApproachName,
-    //       userId: userId,
-    //       analyses: { create: [analysisData] },
-    //     },
-    //   });
-    // }
 
     const payload: AnalysisPayload = {
       userId,
@@ -246,10 +194,15 @@ export async function POST(req: NextRequest) {
       token: process.env.QSTASH_TOKEN!,
     });
 
-    // ✅ Publish the job to your consumer's URL
+    const baseUrl =
+    process.env.NODE_ENV === "production"
+      ? `https://${process.env.VERCEL_URL}` 
+      : "http://localhost:3000"; 
+
+    const destinationUrl = `${baseUrl}/api/queue/db-writer-queue`;
+
     await qstashClient.publishJSON({
-      // Use absolute URL. VERCEL_URL is automatically set in production.
-      url: `${process.env.VERCEL_URL || 'http://localhost:8080'}/api/queue/db-writer-queue`,
+      url: destinationUrl,
       body: payload,
     });
 
