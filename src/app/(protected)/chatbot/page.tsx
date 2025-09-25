@@ -1,4 +1,4 @@
-import ChatPage from "@/app/components/chatbot/chat"
+import ChatPage from "@/app/components/chatbot/Chat"
 const page = () => {
   return (
     <div>

@@ -91,9 +91,10 @@ export function NavbarAuth({ user }: NavbarAuthProps) {
         <HStack spacing={6} align="center">
           {/* Desktop Links */}
           <HStack spacing={6} display={{ base: 'none', md: 'flex' }}>
-            {/* <NavLink href="/chatbot" onClick={onClose}>Chat</NavLink> will be done in next commit*/}
+            {/* <NavLink href="/chatbot" onClick={onClose}>Chat</NavLink>  */}
             <NavLink href="/repository">Repository</NavLink>
             <NavLink href="/analysis">Analysis</NavLink>
+            <NavLink href="/KG" onClick={onClose}>KG</NavLink> 
           </HStack>
 
           {/* User Menu (Clickable Avatar) */}

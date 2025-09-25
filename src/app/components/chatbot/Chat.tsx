@@ -26,8 +26,10 @@ import {
   DrawerHeader,
   DrawerBody,
 } from "@chakra-ui/react";
+
 import { FiSend, FiPlus, FiSearch, FiMessageSquare, FiCode, FiMenu } from "react-icons/fi";
 import TextareaAutosize from "react-textarea-autosize";
+import KnowledgeGraph from "./KG";
 
 
 type Message = {
@@ -71,12 +73,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   
-  // Use Chakra's useDisclosure hook for drawer state management
   const { isOpen, onOpen, onClose } = useDisclosure();
-
-  // Code window state
-  const [codeText, setCodeText] = useState("");
-  const [previewLines, setPreviewLines] = useState<string[]>([]);
 
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -97,12 +94,12 @@ export default function ChatPage() {
     const newChat: Chat = { id, title, messages: [], updatedAt: Date.now() };
     setChats((prev) => [newChat, ...prev]);
     setSelectedChatId(id);
-    onClose(); // Close drawer after creating a new chat
+    onClose();
   }
 
   function handleSelectChat(id: string) {
     setSelectedChatId(id);
-    onClose(); // Close drawer after selecting a chat
+    onClose();
   }
 
   function sendMessageToSelectedChat(text: string) {
@@ -121,34 +118,39 @@ export default function ChatPage() {
 
   // Reusable sidebar content component
   const sidebarContent = (
-    <Box>
-        <HStack justify="space-between" mb={4}>
-          <Heading size="md" color="purple.200">Chats</Heading>
-          <Tooltip label="New Chat"><IconButton aria-label="new chat" icon={<FiPlus />} onClick={createNewChat} size="sm" variant="ghost" /></Tooltip>
-        </HStack>
-        <InputGroup mb={4}>
-          <InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement>
-          <Input placeholder="Search chats" value={search} onChange={(e) => setSearch(e.target.value)} bg="#0f1114" borderColor="#26262a" />
-        </InputGroup>
-        <List spacing={2} h={{ base: "calc(100vh - 120px)", md: "calc(100vh - 90px)" }} overflowY="auto">
-          {filteredChats.map((c) => (
-            <ListItem key={c.id} onClick={() => handleSelectChat(c.id)} cursor="pointer" bg={c.id === selectedChatId ? "rgba(128,90,213,0.12)" : "transparent"} p={3} rounded="md" _hover={{ bg: "rgba(128,90,213,0.08)" }} transition="background 0.2s ease-in-out">
-              <HStack align="start">
-                <Box mt={1} color={c.id === selectedChatId ? "purple.300" : "gray.500"}><FiMessageSquare /></Box>
-                <VStack align="start" spacing={0} flex={1} overflow="hidden">
-                  <Text fontWeight="semibold" isTruncated w="full">{c.title}</Text>
-                  <Text fontSize="sm" color="gray.400" isTruncated w="full">{c.messages.length > 0 ? c.messages[c.messages.length-1].text : "No messages yet"}</Text>
-                </VStack>
-              </HStack>
-            </ListItem>
-          ))}
-        </List>
-    </Box>
+    // ✅ FIX: Changed to a VStack to allow the List to grow and fill available space.
+    <VStack h="full" align="stretch" spacing={4}>
+      <HStack justify="space-between">
+        <Heading size="md" color="purple.200">Chats</Heading>
+        <Tooltip label="New Chat"><IconButton aria-label="new chat" icon={<FiPlus />} onClick={createNewChat} size="sm" variant="ghost" /></Tooltip>
+      </HStack>
+      <InputGroup>
+        <InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement>
+        <Input placeholder="Search chats" value={search} onChange={(e) => setSearch(e.target.value)} bg="#0f1114" borderColor="#26262a" />
+      </InputGroup>
+      {/* ✅ FIX: List now grows to fill space and scrolls internally */}
+      <List spacing={2} flex={1} overflowY="auto" pr={2}>
+        {filteredChats.map((c) => (
+          <ListItem key={c.id} onClick={() => handleSelectChat(c.id)} cursor="pointer" bg={c.id === selectedChatId ? "rgba(128,90,213,0.12)" : "transparent"} p={3} rounded="md" _hover={{ bg: "rgba(128,90,213,0.08)" }} transition="background 0.2s ease-in-out">
+            <HStack align="start">
+              <Box mt={1} color={c.id === selectedChatId ? "purple.300" : "gray.500"}><FiMessageSquare /></Box>
+              <VStack align="start" spacing={0} flex={1} overflow="hidden">
+                <Text fontWeight="semibold" isTruncated w="full">{c.title}</Text>
+                <Text fontSize="sm" color="gray.400" isTruncated w="full">{c.messages.length > 0 ? c.messages[c.messages.length-1].text : "No messages yet"}</Text>
+              </VStack>
+            </HStack>
+          </ListItem>
+        ))}
+      </List>
+    </VStack>
   );
 
   // --- RENDER ---
   return (
-    <Flex h="100vh" bg="#0b0b0f" color="white" overflow="hidden">
+    // ✅ FIX: Changed height to account for your external 70px navbar.
+    // Adjust the "70px" value to match your navbar's actual height.
+    <Flex h="calc(100vh - 70px)" bg="#0b0b0f" color="white" overflow="hidden">
+      
       {/* --- RESPONSIVE SIDEBAR LOGIC --- */}
       {isMobile ? (
         <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
@@ -163,7 +165,7 @@ export default function ChatPage() {
         </Box>
       )}
 
-      {/* Center Column — Main Chat Area */}
+      {/* Center Column — Main Chat Area (No changes needed here) */}
       <Flex direction="column" flex={1} bg="#111114" minW={0}>
         <Flex align="center" p={4} borderBottom="1px solid" borderColor="#1f1f25" h="70px">
           {isMobile && (
@@ -180,7 +182,9 @@ export default function ChatPage() {
                 <Flex key={m.id} alignSelf={m.role === "user" ? "flex-end" : "flex-start"} w="fit-content" maxW={{ base: "90%", md: "70%" }}>
                   <VStack align="start" spacing={1} bg={m.role === "user" ? "purple.600" : "#0f1113"} color="white" px={4} py={3} rounded="lg">
                     <Text whiteSpace="pre-wrap" wordBreak="break-word">{m.text}</Text>
-                    <Text fontSize="xs" color="gray.400" alignSelf="flex-end">{m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}</Text>
+                    <Text fontSize="xs" color="gray.400" alignSelf="flex-end" suppressHydrationWarning={true} >
+                      {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                    </Text>
                   </VStack>
                 </Flex>
               ))
