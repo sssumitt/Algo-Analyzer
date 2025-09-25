@@ -84,9 +84,9 @@ export async function POST(req: NextRequest) {
     const qstashClient = new Client({ token: process.env.QSTASH_TOKEN! });
 
     const baseUrl =
-      process.env.NODE_ENV === "production"
-        ? `https://${process.env.VERCEL_URL}` // e.g. https://your-app.vercel.app
-        : "http://localhost:3000";
+    process.env.NODE_ENV === "production"
+      ? `https://${process.env.APP_BASE_URL}` 
+      : "http://localhost:3000"; 
 
     const destinationUrl = `${baseUrl}/api/queue/neo4j-writer-queue`;
 
