@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
 
     const baseUrl =
     process.env.NODE_ENV === "production"
-      ? `https://${process.env.VERCEL_URL}` 
+      ? `https://${process.env.APP_BASE_URL}` 
       : "http://localhost:3000"; 
 
     const destinationUrl = `${baseUrl}/api/queue/db-writer-queue`;
