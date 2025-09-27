@@ -11,7 +11,10 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
+  forceX, // NEW: Import forceX
+  forceY, // NEW: Import forceY
 } from "d3-force-3d";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { GraphData, GraphNode as GraphNodeType, GraphLink as GraphLinkType } from "@/types/graphTypes";
 import {
   Box,
@@ -27,12 +30,15 @@ import {
   Text as ChakraText,
   IconButton,
   HStack,
+  VStack,
+  Divider,
 } from "@chakra-ui/react";
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, HelpCircle } from "lucide-react";
 
 // --- TYPE DEFINITIONS ---
 interface SimulationNode extends GraphNodeType {
   x?: number; y?: number; z?: number;
+  username?: string;
 }
 interface SimulationLink extends Omit<GraphLinkType, 'source' | 'target'> {
   source: SimulationNode; target: SimulationNode;
@@ -40,21 +46,21 @@ interface SimulationLink extends Omit<GraphLinkType, 'source' | 'target'> {
 
 // --- CONFIGURATION ---
 const NODE_COLORS: Record<string, string> = {
-  User: "#f472b6", // Pink
-  Problem: "#60a5fa", // Blue
-  Approach: "#4ade80", // Green
-  Concept: "#f97316", // Orange
+  User: "#f472b6",      // Pink
+  Problem: "#60a5fa",   // Blue
+  Approach: "#4ade80",  // Green
+  Concept: "#f97316",   // Orange
 };
 
 // --- HELPER COMPONENTS ---
 
 const CameraAnimator = ({ target }: { target: THREE.Vector3 | null }) => {
   useFrame((state) => {
-    const controls = state.controls as TrackballControlsImpl;
-    if (target && controls) {
-      const lookAtTarget = new THREE.Vector3(target.x, target.y, target.z - 100);
-      state.camera.position.lerp(target, 0.05);
-      controls.target.lerp(lookAtTarget, 0.05);
+    if (target && state.controls) {
+      const controls = state.controls as TrackballControlsImpl;
+      const cameraPosition = new THREE.Vector3(target.x, target.y, target.z + 60);
+      state.camera.position.lerp(cameraPosition, 0.05);
+      controls.target.lerp(target, 0.05);
       controls.update();
     }
   });
@@ -63,41 +69,24 @@ const CameraAnimator = ({ target }: { target: THREE.Vector3 | null }) => {
 
 const InfoSidebar = ({ node, onClose }: { node: SimulationNode | null; onClose: () => void }) => {
   if (!node) return null;
-
   const accentColor = NODE_COLORS[node.label] || "#ffffff";
-
   return (
     <Box
-      position="absolute"
-      top={4}
-      right={4}
-      width="288px"
-      bg="rgba(23, 25, 35, 0.5)"
-      backdropFilter="blur(4px)"
-      p={4}
-      borderRadius="lg"
-      boxShadow="2xl"
-      borderTop="4px solid"
-      borderColor={accentColor}
-      transition="all 0.3s ease"
+      position="absolute" top="90px" right="20px" width="288px"
+      bg="rgba(17, 17, 20, 0.7)" backdropFilter="blur(8px)" p={4}
+      borderRadius="lg" boxShadow="xl" borderTop="4px solid"
+      borderColor={accentColor} transition="all 0.3s ease" color="white"
     >
       <IconButton
-        aria-label="Close sidebar"
-        icon={<X size={20} />}
-        onClick={onClose}
-        size="sm"
-        variant="ghost"
-        position="absolute"
-        top={2}
-        right={2}
+        aria-label="Close sidebar" icon={<X size={20} />} onClick={onClose} size="sm" variant="ghost"
+        position="absolute" top={2} right={2} _hover={{ bg: "rgba(255,255,255,0.1)" }}
       />
-      <Heading as="h2" size="md" mb={2} pr={8}>{node.name}</Heading>
+      <Heading as="h2" size="md" mb={2} pr={8} color="whiteAlpha.900">{node.name}</Heading>
       <Badge colorScheme="gray">{`Type: ${node.label}`}</Badge>
-      
       {node.label === 'Problem' && node.url && (
-        <Link href={node.url} isExternal mt={4} color={accentColor} _hover={{ opacity: 0.8 }}>
+        <Link href={node.url} isExternal mt={4} color={accentColor} _hover={{ textDecoration: 'none', opacity: 0.8 }}>
           <HStack spacing={2}>
-            <ChakraText>View Problem</ChakraText>
+            <ChakraText fontWeight="medium">View Problem</ChakraText>
             <ExternalLink size={16} />
           </HStack>
         </Link>
@@ -106,6 +95,35 @@ const InfoSidebar = ({ node, onClose }: { node: SimulationNode | null; onClose: 
   );
 };
 
+const GraphLegend = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
+    return (
+        <Box
+          position="absolute" top="90px" left="20px" bg="rgba(17, 17, 20, 0.7)"
+          backdropFilter="blur(8px)" borderRadius="lg" boxShadow="xl" color="whiteAlpha.900"
+          overflow="hidden" maxH={isOpen ? "300px" : "48px"} transition="max-height 0.4s ease-in-out"
+          border="1px solid" borderColor="rgba(255, 255, 255, 0.1)"
+        >
+          <HStack
+            p={4} py={3} onClick={onToggle} cursor="pointer"
+            _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }} transition="background 0.2s" spacing={3}
+          >
+             <HelpCircle size={18} />
+             <Heading size="sm">Legend</Heading>
+          </HStack>
+          <Box px={4} pb={4} pt={0}>
+              <Divider mb={3} borderColor="whiteAlpha.300" />
+              <VStack align="start" spacing={2}>
+                {Object.entries(NODE_COLORS).map(([label, color]) => (
+                  <HStack key={label} spacing={3}>
+                    <Box w="12px" h="12px" bg={color} borderRadius="full" />
+                    <ChakraText fontSize="sm">{label}</ChakraText>
+                  </HStack>
+                ))}
+              </VStack>
+          </Box>
+        </Box>
+    );
+};
 
 // --- CORE GRAPH COMPONENTS ---
 
@@ -129,18 +147,19 @@ const GraphNode = ({ node, onClick }: { node: SimulationNode; onClick: (node: Si
         onPointerOut={() => setIsHovered(false)}
         scale={isHovered ? 1.3 : 1}
       >
-        <sphereGeometry args={[4, 32, 32]} />
+        <icosahedronGeometry args={[7, 1]} /> 
         <meshStandardMaterial
-          color="#111111"
+          color={color}
+          metalness={0.8}
+          roughness={0.2}
           emissive={color}
-          emissiveIntensity={isHovered ? 1.2 : 0.8}
+          emissiveIntensity={isHovered ? 1.2 : 0.4}
           toneMapped={false}
-          fog={false}
         />
       </mesh>
       <Text
-        position={[0, 7, 0]}
-        fontSize={2.5}
+        position={[0, 11, 0]} // Adjusted text position for larger node
+        fontSize={3.5}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -154,19 +173,29 @@ const GraphNode = ({ node, onClick }: { node: SimulationNode; onClick: (node: Si
 
 const Graph = ({ data, onNodeClick }: { data: GraphData, onNodeClick: (node: SimulationNode) => void }) => {
   const [graphData, setGraphData] = useState<{ nodes: SimulationNode[], links: SimulationLink[] } | null>(null);
-  const controlsRef = useRef<TrackballControlsImpl>(null);
 
   useEffect(() => {
     const nodes: SimulationNode[] = data.nodes.map(node => ({ ...node }));
     const links: GraphLinkType[] = data.links.map(link => ({ ...link }));
+    
+    // NEW: Define vertical positions for each layer
+    const layerPositions: Record<string, number> = {
+      User: -150,
+      Problem: -50,
+      Approach: 50,
+      Concept: 150,
+    };
+
+    // UPDATED: Simulation now uses forceX and forceY for a hierarchical layout
     const simulation = forceSimulation(nodes, 3)
-      .force("link", forceLink(links).id((d: SimulationNode) => d.id).distance(60))
-      .force("charge", forceManyBody().strength(-200))
-      .force("center", forceCenter())
-      .force("collide", forceCollide().radius(12));
-    simulation.on("tick", () => {
-      setGraphData({ nodes: [...nodes], links: links as unknown as SimulationLink[] });
-    });
+      .force("link", forceLink(links).id((d: any) => d.id).distance(90).strength(0.8))
+      .force("charge", forceManyBody().strength(-200)) // Weaker repulsion to allow layering
+      .force("collide", forceCollide().radius(25)) // Collision to prevent overlap in layers
+      .force("x", forceX(0).strength(0.05)) // Center horizontally
+      .force("y", forceY((d: any) => layerPositions[d.label]).strength(0.2)); // Position vertically by layer
+      
+    for (let i = 0; i < 150; ++i) simulation.tick(); // Run simulation for longer to settle
+    simulation.on("tick", () => setGraphData({ nodes: [...nodes], links: links as any }));
     return () => simulation.stop();
   }, [data]);
 
@@ -174,32 +203,22 @@ const Graph = ({ data, onNodeClick }: { data: GraphData, onNodeClick: (node: Sim
 
   return (
     <>
-      <fog attach="fog" args={['#111117', 50, 250]} />
-      <hemisphereLight intensity={0.5} groundColor="black" />
-      <spotLight position={[50, 50, 50]} angle={0.3} penumbra={1} intensity={1.5} castShadow />
-
       {graphData.nodes.map((node) => (
         <GraphNode key={node.id} node={node} onClick={onNodeClick} />
       ))}
-
-      {graphData.links.map((link) => {
-        const sourcePos: [number, number, number] = [link.source.x || 0, link.source.y || 0, link.source.z || 0];
-        const targetPos: [number, number, number] = [link.target.x || 0, link.target.y || 0, link.target.z || 0];
-        return (
-          <Line
-            key={`${link.source.id}-${link.target.id}`}
-            points={[sourcePos, targetPos]}
-            color="rgba(255, 255, 255, 0.3)"
-            lineWidth={0.5}
-          />
-        );
-      })}
-      <TrackballControls ref={controlsRef} noZoom={false} noPan={true} rotateSpeed={3} />
+      <Line
+        points={graphData.links.map(link => [
+            new THREE.Vector3(link.source.x, link.source.y, link.source.z),
+            new THREE.Vector3(link.target.x, link.target.y, link.target.z)
+        ]).flat() as any}
+        color="rgba(255, 255, 255, 0.2)"
+        lineWidth={0.5}
+      />
+      <TrackballControls noZoom={false} noPan={true} rotateSpeed={3} />
     </>
   );
 };
 
-// --- PARENT COMPONENT ---
 // --- PARENT COMPONENT ---
 export default function KnowledgeGraph() {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
@@ -207,25 +226,17 @@ export default function KnowledgeGraph() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SimulationNode | null>(null);
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
+  const [isLegendVisible, setIsLegendVisible] = useState(true);
 
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
         const response = await fetch("/api/graph");
-        if (!response.ok) {
-          // Throw a proper Error object to be caught below
-          throw new Error(`Failed to fetch graph data: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch graph data: ${response.statusText}`);
         const data: GraphData = await response.json();
         setGraphData(data);
-      } catch (err) { // err is implicitly 'unknown'
-        // ✅ FIX: Check if the caught error is an instance of Error
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          // Handle cases where a non-Error value was thrown
-          setError("An unexpected error occurred.");
-        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred.");
       } finally {
         setIsLoading(false);
       }
@@ -236,7 +247,7 @@ export default function KnowledgeGraph() {
   const handleNodeClick = (node: SimulationNode) => {
     setSelectedNode(node);
     if (node.x !== undefined && node.y !== undefined && node.z !== undefined) {
-        setCameraTarget(new THREE.Vector3(node.x, node.y, node.z + 50));
+        setCameraTarget(new THREE.Vector3(node.x, node.y, node.z));
     }
   };
 
@@ -244,36 +255,41 @@ export default function KnowledgeGraph() {
     setSelectedNode(null);
     setCameraTarget(null);
   };
+  
+  const toggleLegend = () => setIsLegendVisible(prev => !prev);
 
   return (
-    <Box position="relative" h="100vh" w="100%" bgGradient="linear(to-br, gray.900, black)">
+    <Box position="relative" h="100vh" w="100%" bg="#05050a">
       {isLoading && (
-        <Center h="100%">
-            <HStack>
-                <Spinner color="blue.500" />
-                <ChakraText>Loading Knowledge Graph...</ChakraText>
-            </HStack>
-        </Center>
+        <Center h="100%"><HStack><Spinner color="blue.500" /><ChakraText color="whiteAlpha.800">Loading Knowledge Graph...</ChakraText></HStack></Center>
       )}
       {error && (
         <Center h="100%" p={4}>
-          <Alert status="error" variant="subtle" borderRadius="md">
-            <AlertIcon />
-            <Box>
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Box>
+          <Alert status="error" variant="subtle" borderRadius="md" bg="red.900" color="white">
+            <AlertIcon color="white" /><Box><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Box>
           </Alert>
         </Center>
       )}
       {!isLoading && !error && graphData && (
         <>
-            <Canvas camera={{ position: [0, 0, 150], fov: 50 }}>
+            {/* UPDATED: Camera position adjusted to better fit the vertical layout */}
+            <Canvas camera={{ position: [0, 0, 300], fov: 50 }}>
+                <color attach="background" args={['#05050a']} />
+                <ambientLight intensity={0.1} />
+                <pointLight position={[100, 100, 100]} intensity={0.5} color="white" />
+                <pointLight position={[-100, -100, -50]} intensity={0.7} color="#f472b6" />
+
                 <Graph data={graphData} onNodeClick={handleNodeClick} />
                 <CameraAnimator target={cameraTarget} />
+                
+                <EffectComposer>
+                    <Bloom luminanceThreshold={0.1} luminanceSmoothing={0.9} height={400} intensity={0.9} />
+                    <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                </EffectComposer>
             </Canvas>
+            <GraphLegend isOpen={isLegendVisible} onToggle={toggleLegend} />
             <InfoSidebar node={selectedNode} onClose={closeSidebar} />
-            <ChakraText fontSize="xs" color="gray.500" position="absolute" bottom={4} left={4}>
+            <ChakraText fontSize="xs" color="gray.500" position="absolute" bottom={4} right={4}>
                 Left-click & drag to rotate. Scroll to zoom.
             </ChakraText>
         </>

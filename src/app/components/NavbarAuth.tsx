@@ -95,6 +95,7 @@ export function NavbarAuth({ user }: NavbarAuthProps) {
             <NavLink href="/repository">Repository</NavLink>
             <NavLink href="/analysis">Analysis</NavLink>
             <NavLink href="/KG" onClick={onClose}>KG</NavLink> 
+            <NavLink href="/chatbot" onClick={onClose}>Chat</NavLink>
           </HStack>
 
           {/* User Menu (Clickable Avatar) */}
@@ -151,6 +152,7 @@ export function NavbarAuth({ user }: NavbarAuthProps) {
               <NavLink href="/dashboard" onClick={onClose}>Dashboard</NavLink>
               <NavLink href="/repository" onClick={onClose}>Repository</NavLink>
               <NavLink href="/analysis" onClick={onClose}>Analysis</NavLink>
+              <NavLink href="/KG" onClick={onClose}>KG</NavLink> 
               <NavLink href="/chatbot" onClick={onClose}>Chat</NavLink>
             </VStack>
           </DrawerBody>

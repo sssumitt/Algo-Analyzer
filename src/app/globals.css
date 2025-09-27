@@ -21,3 +21,44 @@ body::-webkit-scrollbar {
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* Add this to your global stylesheet */
+
+/* General styling for markdown content in bot messages */
+.markdown-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Spacing between paragraphs, lists, etc. */
+}
+
+.markdown-content p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #4a5568; /* gray.600 */
+  padding-left: 1rem;
+  margin: 0;
+  color: #a0aec0; /* gray.400 */
+  font-style: italic;
+}
+
+/* Styling for the container of a syntax-highlighted code block */
+.code-block-container {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #1a202c; /* A default dark background */
+}

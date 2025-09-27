@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Container, Heading, Text, VStack, Flex } from '@chakra-ui/react'
-import { Bug, Database, LineChart } from 'lucide-react'
+import { Bug, Database, LineChart, Share2 } from 'lucide-react'
 import { FC, ReactElement } from 'react'
 
 // A reusable card component for a more structured and stylish look
@@ -60,11 +60,11 @@ export function FeaturesSection() {
             title="Skill Insights"
             desc="Track strengths across topics with visual progress metrics."
           />
-          {/* <FeatureCard
+          <FeatureCard
             icon={<Share2 size={40} />}
             title="Knowledge Graph"
             desc="Interconnect algorithms to discover prerequisite gaps."
-          /> */}
+          />
         </Flex>
       </Container>
     </Box>
