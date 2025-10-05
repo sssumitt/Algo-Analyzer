@@ -63,7 +63,7 @@ export function Footer() {
               <Tooltip label="Developer 2's GitHub" hasArrow bg="gray.700" color="white">
                 <IconButton
                   as="a"
-                  href="https://github.com/AvneetKapoor28/"
+                  href="https://github.com/SUJAATALI"
                   target="_blank"
                   aria-label="Developer 2's GitHub"
                   icon={<Github size={20} />}
@@ -77,7 +77,7 @@ export function Footer() {
               <Tooltip label="Developer 2's LinkedIn" hasArrow bg="gray.700" color="white">
                 <IconButton
                   as="a"
-                  href="https://www.linkedin.com/in/avneet-singh-kapoor-9a6168248"
+                  href="https://www.linkedin.com/in/sujaatali/"
                   target="_blank"
                   aria-label="Developer 2's LinkedIn"
                   icon={<Linkedin size={20} />}

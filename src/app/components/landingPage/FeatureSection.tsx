@@ -1,6 +1,5 @@
 'use client'
-
-import { Box, Container, Heading, Text, VStack, Flex } from '@chakra-ui/react'
+import { Box, Container, Heading, Text, VStack, Grid } from '@chakra-ui/react'
 import { Bug, Database, LineChart, Share2 } from 'lucide-react'
 import { FC, ReactElement } from 'react'
 
@@ -14,7 +13,8 @@ interface FeatureCardProps {
 const FeatureCard: FC<FeatureCardProps> = ({ icon, title, desc }) => {
   return (
     <VStack
-      maxWidth={{ base: '100%', md: '300px' }} // Responsive width
+      w="100%" // Take the full width of the grid column
+      h="100%" // Ensure all cards in a row have the same height
       spacing={5}
       p={8}
       bg="whiteAlpha.50" // Semi-transparent background
@@ -36,7 +36,6 @@ const FeatureCard: FC<FeatureCardProps> = ({ icon, title, desc }) => {
   )
 }
 
-
 export function FeaturesSection() {
   return (
     <Box as="section" py={24} bg="black">
@@ -44,7 +43,15 @@ export function FeaturesSection() {
         <Heading size="xl" mb={16} textAlign="center" color="white">
           Core Capabilities
         </Heading>
-        <Flex justify={{ base: 'center', md: 'space-between' }} wrap="wrap" gap={8}>
+        {/* Using Grid for a responsive layout that aligns items in columns */}
+        <Grid
+          templateColumns={{
+            base: '1fr', // 1 column on small screens
+            md: 'repeat(2, 1fr)', // 2 columns on medium screens
+            lg: 'repeat(4, 1fr)', // 4 columns on large screens (all in one line)
+          }}
+          gap={8}
+        >
           <FeatureCard
             icon={<Database size={40} />}
             title="Store & Tag"
@@ -65,7 +72,7 @@ export function FeaturesSection() {
             title="Knowledge Graph"
             desc="Interconnect algorithms to discover prerequisite gaps."
           />
-        </Flex>
+        </Grid>
       </Container>
     </Box>
   )
