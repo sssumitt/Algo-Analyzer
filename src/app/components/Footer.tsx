@@ -1,97 +1,71 @@
 'use client';
 
-import { Box, Container, Text, HStack, VStack, IconButton, Tooltip, Flex } from '@chakra-ui/react';
+import { Box, Container, HStack, IconButton, Tooltip, Flex, Divider } from '@chakra-ui/react';
 import { Github, Linkedin } from 'lucide-react';
+
+const developers = [
+  {
+    github: "https://github.com/sssumitt",
+    linkedin: "https://www.linkedin.com/in/sumit-anand-68b828366",
+  },
+  {
+    github: "https://github.com/AvneetKapoor28/",
+    linkedin: "https://www.linkedin.com/in/avneet-singh-kapoor-9a6168248",
+  },
+  {
+    github: "https://github.com/SUJAATALI",
+    linkedin: "https://www.linkedin.com/in/sujaatali/",
+  },
+];
 
 export function Footer() {
   return (
-    <Box
-      as="footer"
-      bg="transparent"
-      color="gray.500"
-    >
-      <Container
-        maxW="1200px"
-        py={6}
-        px={{ base: 6, md: 10 }}
-        borderTop="1px solid"
-        borderColor="whiteAlpha.200"
-      >
-        <Flex 
-          direction={{ base: 'column', md: 'row' }} 
-          justify="space-between" 
+    <Box as="footer" bg="gray.900" color="gray.300">
+      <Container maxW="1200px" py={6} px={{ base: 6, md: 10 }}>
+        <Flex
+          direction={{ base: 'column', md: 'row' }}
+          justify="space-between"
           align="center"
         >
-          <Text fontSize="sm" mb={{ base: 4, md: 0 }}>
+          <Box fontSize="sm" mb={{ base: 4, md: 0 }}>
             © {new Date().getFullYear()} Algo Analyzer. All rights reserved.
-          </Text>
-          <VStack spacing={2} align={{ base: 'center', md: 'flex-end' }}>
-            <HStack spacing={1}>
-              <Text fontSize="xs" color="gray.600" mr={2}>Dev 1:</Text>
-              <Tooltip label="Developer 1's GitHub" hasArrow bg="gray.700" color="white">
-                <IconButton
-                  as="a"
-                  href="https://github.com/sssumitt"
-                  target="_blank"
-                  aria-label="Developer 1's GitHub"
-                  icon={<Github size={20} />}
-                  variant="ghost"
-                  color="gray.500"
-                  transition="color 0.2s"
-                  _hover={{ color: 'white' }}
-                  rounded="full"
-                />
-              </Tooltip>
-              <Tooltip label="Developer 1's LinkedIn" hasArrow bg="gray.700" color="white">
-                <IconButton
-                  as="a"
-                  href="https://www.linkedin.com/in/sumit-anand-68b828366" 
-                  target="_blank"
-                  aria-label="Developer 1's LinkedIn"
-                  icon={<Linkedin size={20} />}
-                  variant="ghost"
-                  color="gray.500"
-                  transition="color 0.2s"
-                  _hover={{ color: 'white' }}
-                  rounded="full"
-                />
-              </Tooltip>
-              
-            </HStack>
-            <HStack spacing={1}>
-              <Text fontSize="xs" color="gray.600" mr={2}>Dev 2:</Text>
-              <Tooltip label="Developer 2's GitHub" hasArrow bg="gray.700" color="white">
-                <IconButton
-                  as="a"
-                  href="https://github.com/SUJAATALI"
-                  target="_blank"
-                  aria-label="Developer 2's GitHub"
-                  icon={<Github size={20} />}
-                  variant="ghost"
-                  color="gray.500"
-                  transition="color 0.2s"
-                  _hover={{ color: 'white' }}
-                  rounded="full"
-                />
-              </Tooltip>
-              <Tooltip label="Developer 2's LinkedIn" hasArrow bg="gray.700" color="white">
-                <IconButton
-                  as="a"
-                  href="https://www.linkedin.com/in/sujaatali/"
-                  target="_blank"
-                  aria-label="Developer 2's LinkedIn"
-                  icon={<Linkedin size={20} />}
-                  variant="ghost"
-                  color="gray.500"
-                  transition="color 0.2s"
-                  _hover={{ color: 'white' }}
-                  rounded="full"
-                />
-              </Tooltip>
-              
-            </HStack>
-          </VStack>
+          </Box>
+
+          <HStack spacing={{ base: 4, md: 6 }}>
+            {developers.map((dev, idx) => (
+              <HStack key={idx} spacing={2}>
+                <Tooltip label="GitHub" hasArrow bg="gray.700" color="white">
+                  <IconButton
+                    as="a"
+                    href={dev.github}
+                    target="_blank"
+                    aria-label="GitHub"
+                    icon={<Github size={20} />}
+                    variant="ghost"
+                    color="gray.300"
+                    _hover={{ color: 'white' }}
+                    rounded="full"
+                  />
+                </Tooltip>
+                <Tooltip label="LinkedIn" hasArrow bg="gray.700" color="white">
+                  <IconButton
+                    as="a"
+                    href={dev.linkedin}
+                    target="_blank"
+                    aria-label="LinkedIn"
+                    icon={<Linkedin size={20} />}
+                    variant="ghost"
+                    color="gray.300"
+                    _hover={{ color: 'white' }}
+                    rounded="full"
+                  />
+                </Tooltip>
+              </HStack>
+            ))}
+          </HStack>
         </Flex>
+
+        <Divider borderColor="whiteAlpha.200" mt={6} />
       </Container>
     </Box>
   );
