@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
           labelFilter: "+User|+Problem|+Approach|+Concept"
       })
       YIELD nodes, relationships
-      RETURN nodes, relationships
+      RETURN nodes, [rel IN relationships WHERE type(rel) IN ['SUBMITTED', 'SOLVED_WITH', 'BELONGS_TO']] AS relationships
       `,
       { userId }
     );
@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
         const processedNode: GraphNode = {
           id: internalId,
           label: node.labels[0],
-          // ✅ FIX: Provide an empty string fallback to ensure the type is always 'string'.
           name: node.properties.name || node.properties.userId || "",
           url: node.properties.url,
         };

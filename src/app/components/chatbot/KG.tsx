@@ -11,8 +11,8 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
-  forceX, // NEW: Import forceX
-  forceY, // NEW: Import forceY
+  forceX,
+  forceY,
 } from "d3-force-3d";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import type { GraphData, GraphNode as GraphNodeType, GraphLink as GraphLinkType } from "@/types/graphTypes";
@@ -25,15 +25,13 @@ import {
   AlertDescription,
   AlertTitle,
   Heading,
-  Badge,
   Link,
   Text as ChakraText,
   IconButton,
   HStack,
   VStack,
-  Divider,
 } from "@chakra-ui/react";
-import { X, ExternalLink, HelpCircle } from "lucide-react";
+import { X, ExternalLink } from "lucide-react";
 
 // --- TYPE DEFINITIONS ---
 interface SimulationNode extends GraphNodeType {
@@ -52,78 +50,91 @@ const NODE_COLORS: Record<string, string> = {
   Concept: "#f97316",   // Orange
 };
 
-// --- HELPER COMPONENTS ---
+// --- HELPER & UI COMPONENTS ---
 
 const CameraAnimator = ({ target }: { target: THREE.Vector3 | null }) => {
   useFrame((state) => {
-    if (target && state.controls) {
-      const controls = state.controls as TrackballControlsImpl;
-      const cameraPosition = new THREE.Vector3(target.x, target.y, target.z + 60);
-      state.camera.position.lerp(cameraPosition, 0.05);
+    const controls = state.controls as TrackballControlsImpl;
+    if (target && controls) {
+      // Animate camera to focus on the selected node
+      const targetCameraPos = new THREE.Vector3(target.x, target.y, target.z + 50);
+      state.camera.position.lerp(targetCameraPos, 0.05);
       controls.target.lerp(target, 0.05);
+      controls.update();
+    } else if (controls) {
+      // Animate back to the center
+      const initialTarget = new THREE.Vector3(0, 0, 0);
+      state.camera.position.lerp(new THREE.Vector3(0, 0, 300), 0.05);
+      controls.target.lerp(initialTarget, 0.05);
       controls.update();
     }
   });
   return null;
 };
 
-const InfoSidebar = ({ node, onClose }: { node: SimulationNode | null; onClose: () => void }) => {
-  if (!node) return null;
-  const accentColor = NODE_COLORS[node.label] || "#ffffff";
+const InfoPanel = ({ node, onClose }: { node: SimulationNode | null; onClose: () => void }) => {
+  const accentColor = node ? NODE_COLORS[node.label] || "#ffffff" : "#ffffff";
+
   return (
     <Box
-      position="absolute" top="90px" right="20px" width="288px"
-      bg="rgba(17, 17, 20, 0.7)" backdropFilter="blur(8px)" p={4}
-      borderRadius="lg" boxShadow="xl" borderTop="4px solid"
-      borderColor={accentColor} transition="all 0.3s ease" color="white"
+      position="absolute" top="20px" right={node ? '20px' : '-320px'} // Animate slide-in/out
+      width="280px" bg="rgba(10, 10, 15, 0.5)" backdropFilter="blur(10px)"
+      p={5} borderRadius="lg" boxShadow="lg" color="whiteAlpha.900"
+      border="1px solid" borderColor="rgba(255, 255, 255, 0.1)"
+      transition="right 0.4s ease-in-out"
+      zIndex={1}
     >
-      <IconButton
-        aria-label="Close sidebar" icon={<X size={20} />} onClick={onClose} size="sm" variant="ghost"
-        position="absolute" top={2} right={2} _hover={{ bg: "rgba(255,255,255,0.1)" }}
-      />
-      <Heading as="h2" size="md" mb={2} pr={8} color="whiteAlpha.900">{node.name}</Heading>
-      <Badge colorScheme="gray">{`Type: ${node.label}`}</Badge>
-      {node.label === 'Problem' && node.url && (
-        <Link href={node.url} isExternal mt={4} color={accentColor} _hover={{ textDecoration: 'none', opacity: 0.8 }}>
-          <HStack spacing={2}>
-            <ChakraText fontWeight="medium">View Problem</ChakraText>
-            <ExternalLink size={16} />
-          </HStack>
-        </Link>
+      {node && (
+        <>
+          <IconButton
+            aria-label="Close panel" icon={<X size={20} />} onClick={onClose} size="sm" variant="ghost"
+            position="absolute" top={2} right={2} _hover={{ bg: "rgba(255, 255, 255, 0.1)" }}
+          />
+          <VStack align="start" spacing={3}>
+            <Box borderLeft="3px solid" borderColor={accentColor} pl={3}>
+              <Heading as="h2" size="md">{node.name}</Heading>
+              <ChakraText fontSize="sm" color="whiteAlpha.700">{node.label}</ChakraText>
+            </Box>
+            {node.label === 'Problem' && node.url && (
+              <Link href={node.url} isExternal color="blue.300" _hover={{ textDecoration: 'none', color: 'blue.200' }}>
+                <HStack spacing={2}>
+                  <ChakraText fontWeight="medium">View Problem</ChakraText>
+                  <ExternalLink size={16} />
+                </HStack>
+              </Link>
+            )}
+          </VStack>
+        </>
       )}
     </Box>
   );
 };
 
-const GraphLegend = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
-    return (
-        <Box
-          position="absolute" top="90px" left="20px" bg="rgba(17, 17, 20, 0.7)"
-          backdropFilter="blur(8px)" borderRadius="lg" boxShadow="xl" color="whiteAlpha.900"
-          overflow="hidden" maxH={isOpen ? "300px" : "48px"} transition="max-height 0.4s ease-in-out"
-          border="1px solid" borderColor="rgba(255, 255, 255, 0.1)"
-        >
-          <HStack
-            p={4} py={3} onClick={onToggle} cursor="pointer"
-            _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }} transition="background 0.2s" spacing={3}
-          >
-             <HelpCircle size={18} />
-             <Heading size="sm">Legend</Heading>
+const Legend = () => (
+    <Box
+      position="absolute"
+      top="20px"
+      left="20px"
+      bg="rgba(10, 10, 15, 0.5)"
+      backdropFilter="blur(10px)"
+      p={4}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="rgba(255, 255, 255, 0.1)"
+      width="160px"
+      zIndex={1}
+    >
+      <VStack align="start" spacing={3}>
+        <Heading size="sm" color="whiteAlpha.800" mb={1}>Legend</Heading>
+        {Object.entries(NODE_COLORS).map(([label, color]) => (
+          <HStack key={label} spacing={3}>
+            <Box w="12px" h="12px" bg={color} borderRadius="full" />
+            <ChakraText fontSize="sm" color="whiteAlpha.900">{label}</ChakraText>
           </HStack>
-          <Box px={4} pb={4} pt={0}>
-              <Divider mb={3} borderColor="whiteAlpha.300" />
-              <VStack align="start" spacing={2}>
-                {Object.entries(NODE_COLORS).map(([label, color]) => (
-                  <HStack key={label} spacing={3}>
-                    <Box w="12px" h="12px" bg={color} borderRadius="full" />
-                    <ChakraText fontSize="sm">{label}</ChakraText>
-                  </HStack>
-                ))}
-              </VStack>
-          </Box>
-        </Box>
-    );
-};
+        ))}
+      </VStack>
+    </Box>
+);
 
 // --- CORE GRAPH COMPONENTS ---
 
@@ -133,6 +144,7 @@ const GraphNode = ({ node, onClick }: { node: SimulationNode; onClick: (node: Si
   const ref = useRef<THREE.Group>(null);
 
   useFrame(() => {
+    // Smoothly interpolate node position for a fluid animation
     if (ref.current) {
         const targetPos = new THREE.Vector3(node.x || 0, node.y || 0, node.z || 0);
         ref.current.position.lerp(targetPos, 0.1);
@@ -147,18 +159,18 @@ const GraphNode = ({ node, onClick }: { node: SimulationNode; onClick: (node: Si
         onPointerOut={() => setIsHovered(false)}
         scale={isHovered ? 1.3 : 1}
       >
-        <icosahedronGeometry args={[7, 1]} /> 
+        <sphereGeometry args={[5, 32, 16]} />
         <meshStandardMaterial
           color={color}
-          metalness={0.8}
-          roughness={0.2}
+          metalness={0.4}
+          roughness={0.5}
           emissive={color}
-          emissiveIntensity={isHovered ? 1.2 : 0.4}
+          emissiveIntensity={isHovered ? 0.8 : 0.3}
           toneMapped={false}
         />
       </mesh>
       <Text
-        position={[0, 11, 0]} // Adjusted text position for larger node
+        position={[0, 9, 0]}
         fontSize={3.5}
         color="white"
         anchorX="center"
@@ -172,34 +184,29 @@ const GraphNode = ({ node, onClick }: { node: SimulationNode; onClick: (node: Si
 };
 
 const Graph = ({ data, onNodeClick }: { data: GraphData, onNodeClick: (node: SimulationNode) => void }) => {
-  const [graphData, setGraphData] = useState<{ nodes: SimulationNode[], links: SimulationLink[] } | null>(null);
-
-  useEffect(() => {
+  const graphData = useMemo(() => {
     const nodes: SimulationNode[] = data.nodes.map(node => ({ ...node }));
-    const links: GraphLinkType[] = data.links.map(link => ({ ...link }));
-    
-    // NEW: Define vertical positions for each layer
+    const links: SimulationLink[] = data.links.map(link => ({
+        ...link,
+        source: nodes.find(n => n.id === link.source)!,
+        target: nodes.find(n => n.id === link.target)!,
+    }));
+
     const layerPositions: Record<string, number> = {
-      User: -150,
-      Problem: -50,
-      Approach: 50,
-      Concept: 150,
+      User: -150, Problem: -50, Approach: 50, Concept: 150,
     };
 
-    // UPDATED: Simulation now uses forceX and forceY for a hierarchical layout
     const simulation = forceSimulation(nodes, 3)
       .force("link", forceLink(links).id((d: any) => d.id).distance(90).strength(0.8))
-      .force("charge", forceManyBody().strength(-200)) // Weaker repulsion to allow layering
-      .force("collide", forceCollide().radius(25)) // Collision to prevent overlap in layers
-      .force("x", forceX(0).strength(0.05)) // Center horizontally
-      .force("y", forceY((d: any) => layerPositions[d.label]).strength(0.2)); // Position vertically by layer
-      
-    for (let i = 0; i < 150; ++i) simulation.tick(); // Run simulation for longer to settle
-    simulation.on("tick", () => setGraphData({ nodes: [...nodes], links: links as any }));
-    return () => simulation.stop();
-  }, [data]);
+      .force("charge", forceManyBody().strength(-200))
+      .force("collide", forceCollide().radius(25))
+      .force("x", forceX(0).strength(0.05))
+      .force("y", forceY((d: any) => layerPositions[d.label] || 0).strength(0.2));
 
-  if (!graphData) return null;
+    for (let i = 0; i < 200; ++i) simulation.tick();
+
+    return { nodes, links };
+  }, [data]);
 
   return (
     <>
@@ -212,7 +219,7 @@ const Graph = ({ data, onNodeClick }: { data: GraphData, onNodeClick: (node: Sim
             new THREE.Vector3(link.target.x, link.target.y, link.target.z)
         ]).flat() as any}
         color="rgba(255, 255, 255, 0.2)"
-        lineWidth={0.5}
+        lineWidth={0.3}
       />
       <TrackballControls noZoom={false} noPan={true} rotateSpeed={3} />
     </>
@@ -226,13 +233,12 @@ export default function KnowledgeGraph() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<SimulationNode | null>(null);
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
-  const [isLegendVisible, setIsLegendVisible] = useState(true);
 
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
         const response = await fetch("/api/graph");
-        if (!response.ok) throw new Error(`Failed to fetch graph data: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: GraphData = await response.json();
         setGraphData(data);
       } catch (err) {
@@ -247,51 +253,56 @@ export default function KnowledgeGraph() {
   const handleNodeClick = (node: SimulationNode) => {
     setSelectedNode(node);
     if (node.x !== undefined && node.y !== undefined && node.z !== undefined) {
-        setCameraTarget(new THREE.Vector3(node.x, node.y, node.z));
+      setCameraTarget(new THREE.Vector3(node.x, node.y, node.z));
     }
   };
 
-  const closeSidebar = () => {
+  const closePanel = () => {
     setSelectedNode(null);
-    setCameraTarget(null);
+    setCameraTarget(null); // Signal camera to return to center
   };
+
+  if (isLoading) {
+    return (
+        <Center h="100vh" w="100%" bg="#05050a">
+            <HStack><Spinner color="blue.500" /><ChakraText color="whiteAlpha.800">Loading Knowledge Graph...</ChakraText></HStack>
+        </Center>
+    );
+  }
   
-  const toggleLegend = () => setIsLegendVisible(prev => !prev);
+  if (error) {
+    return (
+        <Center h="100vh" w="100%" bg="#05050a" p={4}>
+            <Alert status="error" variant="subtle" borderRadius="md" bg="red.900" color="whiteAlpha.900">
+                <AlertIcon color="white" />
+                <Box>
+                    <AlertTitle>Failed to Load Graph</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Box>
+            </Alert>
+        </Center>
+    );
+  }
 
   return (
     <Box position="relative" h="100vh" w="100%" bg="#05050a">
-      {isLoading && (
-        <Center h="100%"><HStack><Spinner color="blue.500" /><ChakraText color="whiteAlpha.800">Loading Knowledge Graph...</ChakraText></HStack></Center>
-      )}
-      {error && (
-        <Center h="100%" p={4}>
-          <Alert status="error" variant="subtle" borderRadius="md" bg="red.900" color="white">
-            <AlertIcon color="white" /><Box><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Box>
-          </Alert>
-        </Center>
-      )}
-      {!isLoading && !error && graphData && (
+      {graphData && (
         <>
-            {/* UPDATED: Camera position adjusted to better fit the vertical layout */}
+            <Legend />
             <Canvas camera={{ position: [0, 0, 300], fov: 50 }}>
                 <color attach="background" args={['#05050a']} />
-                <ambientLight intensity={0.1} />
-                <pointLight position={[100, 100, 100]} intensity={0.5} color="white" />
-                <pointLight position={[-100, -100, -50]} intensity={0.7} color="#f472b6" />
-
+                <ambientLight intensity={0.2} />
+                <pointLight position={[0, 0, 100]} intensity={0.4} color="white" />
+                
                 <Graph data={graphData} onNodeClick={handleNodeClick} />
                 <CameraAnimator target={cameraTarget} />
                 
                 <EffectComposer>
-                    <Bloom luminanceThreshold={0.1} luminanceSmoothing={0.9} height={400} intensity={0.9} />
+                    <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={400} intensity={0.5} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
                 </EffectComposer>
             </Canvas>
-            <GraphLegend isOpen={isLegendVisible} onToggle={toggleLegend} />
-            <InfoSidebar node={selectedNode} onClose={closeSidebar} />
-            <ChakraText fontSize="xs" color="gray.500" position="absolute" bottom={4} right={4}>
-                Left-click & drag to rotate. Scroll to zoom.
-            </ChakraText>
+            <InfoPanel node={selectedNode} onClose={closePanel} />
         </>
       )}
     </Box>
