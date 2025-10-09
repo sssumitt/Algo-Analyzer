@@ -35,8 +35,9 @@ export function Navbar() {
       zIndex={50}
       bg="blackAlpha.100"
       backdropFilter="blur(10px)"
+      p='0.75em'
     >
-      <Container maxW="1200px" px={{ base: 6, md: 10 }} py={5}>
+      <Container maxW="100%" px={{ base: 6, md: 10 }} py={5}>
         <Flex justify="space-between" align="center">
           {/* Logo and Title */}
           <HStack as={NextLink} href="/" spacing={2}>
