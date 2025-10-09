@@ -39,6 +39,7 @@ export function Hero3D() {
         gl_Position = projectionMatrix * mvPosition;
       }
     `
+
     const matrixFragmentShader = `
       uniform vec3 color;
       uniform sampler2D pointTexture;
@@ -50,6 +51,7 @@ export function Hero3D() {
     `
 
     function init() {
+      // Scene setup
       scene = new THREE.Scene()
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       camera.position.z = 10
@@ -57,12 +59,13 @@ export function Hero3D() {
       renderer = new THREE.WebGLRenderer({
         canvas: canvasRef.current!,
         antialias: true,
-        alpha: false,
+        alpha: true, // allow background to show through
       })
       renderer.setClearColor(0x000000, 1)
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.setPixelRatio(window.devicePixelRatio)
 
+      // Postprocessing
       const renderPass = new RenderPass(scene, camera)
       const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85)
       bloomPass.threshold = 0
@@ -72,6 +75,7 @@ export function Hero3D() {
       composer.addPass(renderPass)
       composer.addPass(bloomPass)
 
+      // Graph group (nodes + lines)
       graphGroup = new THREE.Group()
       const nodeCount = 150
       const nodeGeometry = new THREE.BufferGeometry()
@@ -99,6 +103,7 @@ export function Hero3D() {
       const nodes = new THREE.Points(nodeGeometry, nodeMaterial)
       graphGroup.add(nodes)
 
+      // Connect close nodes with lines
       const linePositions: number[] = []
       const connectionDistance = 2.5
       for (let i = 0; i < nodeCount; i++) {
@@ -115,6 +120,7 @@ export function Hero3D() {
           }
         }
       }
+
       const lineGeometry = new THREE.BufferGeometry()
       lineGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePositions), 3))
       const lineMaterial = new THREE.LineBasicMaterial({
@@ -126,6 +132,7 @@ export function Hero3D() {
       graphGroup.add(new THREE.LineSegments(lineGeometry, lineMaterial))
       scene.add(graphGroup)
 
+      // Matrix-like falling particles
       const rainCount = 2000
       const rainGeometry = new THREE.BufferGeometry()
       const rainPositions = new Float32Array(rainCount * 3)
@@ -174,10 +181,15 @@ export function Hero3D() {
       )
       scene.add(matrixPoints)
 
+      // Event listeners
       window.addEventListener('resize', onWindowResize)
       document.addEventListener('mousemove', onMouseMove)
 
-      setIsReady(true)
+      // Render one frame first to pre-load everything
+      composer.render()
+
+      // ✅ Small delay before showing the canvas (prevents white flash)
+      setTimeout(() => setIsReady(true), 300)
     }
 
     function onWindowResize() {
@@ -235,9 +247,10 @@ export function Hero3D() {
         left={0}
         w="100%"
         h="100%"
+        bg="black"
         visibility={isReady ? 'visible' : 'hidden'}
         opacity={isReady ? 1 : 0}
-        transition="opacity 1s ease-in"
+        transition="opacity 1.5s ease-in-out"
       />
     </Box>
   )
