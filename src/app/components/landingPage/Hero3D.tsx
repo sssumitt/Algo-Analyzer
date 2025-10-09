@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -9,6 +9,7 @@ import { Box } from '@chakra-ui/react'
 
 export function Hero3D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -56,13 +57,12 @@ export function Hero3D() {
       renderer = new THREE.WebGLRenderer({
         canvas: canvasRef.current!,
         antialias: true,
-        alpha: false // opaque canvas
+        alpha: false,
       })
-      renderer.setClearColor(0x000000, 1) // FULL BLACK
+      renderer.setClearColor(0x000000, 1)
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.setPixelRatio(window.devicePixelRatio)
 
-      // Post-processing
       const renderPass = new RenderPass(scene, camera)
       const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85)
       bloomPass.threshold = 0
@@ -72,7 +72,6 @@ export function Hero3D() {
       composer.addPass(renderPass)
       composer.addPass(bloomPass)
 
-      // Graph Nodes
       graphGroup = new THREE.Group()
       const nodeCount = 150
       const nodeGeometry = new THREE.BufferGeometry()
@@ -95,12 +94,11 @@ export function Hero3D() {
         size: 0.2,
         blending: THREE.AdditiveBlending,
         transparent: true,
-        sizeAttenuation: true
+        sizeAttenuation: true,
       })
       const nodes = new THREE.Points(nodeGeometry, nodeMaterial)
       graphGroup.add(nodes)
 
-      // Lines
       const linePositions: number[] = []
       const connectionDistance = 2.5
       for (let i = 0; i < nodeCount; i++) {
@@ -123,12 +121,11 @@ export function Hero3D() {
         color: 0xda70d6,
         transparent: true,
         opacity: 0.1,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
       })
       graphGroup.add(new THREE.LineSegments(lineGeometry, lineMaterial))
       scene.add(graphGroup)
 
-      // Matrix Rain
       const rainCount = 2000
       const rainGeometry = new THREE.BufferGeometry()
       const rainPositions = new Float32Array(rainCount * 3)
@@ -160,25 +157,27 @@ export function Hero3D() {
         rainGeometry,
         new THREE.ShaderMaterial({
           uniforms: {
-            color: { value: new THREE.Color(0xE03FD8) },
+            color: { value: new THREE.Color(0xe03fd8) },
             pointTexture: {
               value: new THREE.TextureLoader().load(
                 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/disc.png'
-              )
+              ),
             },
-            clockTime: { value: 0 }
+            clockTime: { value: 0 },
           },
           vertexShader: matrixVertexShader,
           fragmentShader: matrixFragmentShader,
           blending: THREE.AdditiveBlending,
           depthTest: false,
-          transparent: true
+          transparent: true,
         })
       )
       scene.add(matrixPoints)
 
       window.addEventListener('resize', onWindowResize)
       document.addEventListener('mousemove', onMouseMove)
+
+      setIsReady(true)
     }
 
     function onWindowResize() {
@@ -201,7 +200,7 @@ export function Hero3D() {
       graphGroup.rotation.y += delta * 0.1
       graphGroup.rotation.x += delta * 0.05
 
-        ; (matrixPoints.material as THREE.ShaderMaterial).uniforms.clockTime.value = time
+      ;(matrixPoints.material as THREE.ShaderMaterial).uniforms.clockTime.value = time
 
       camera.position.x += (mouse.x * 2 - camera.position.x) * 0.02
       camera.position.y += (-mouse.y * 2 - camera.position.y) * 0.02
@@ -220,15 +219,26 @@ export function Hero3D() {
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh || obj instanceof THREE.Points || obj instanceof THREE.LineSegments) {
           obj.geometry.dispose()
-            ; (obj.material as THREE.Material).dispose()
+          ;(obj.material as THREE.Material).dispose()
         }
       })
     }
   }, [])
 
   return (
-    <Box w="100%" h="100vh" position="relative" overflow="hidden">
-      <Box as="canvas" ref={canvasRef} position="absolute" top={0} left={0} w="100%" h="100%" zIndex={0} style={{ backgroundColor: '#000000' }} />
+    <Box w="100%" h="100vh" position="relative" overflow="hidden" bg="black">
+      <Box
+        as="canvas"
+        ref={canvasRef}
+        position="absolute"
+        top={0}
+        left={0}
+        w="100%"
+        h="100%"
+        visibility={isReady ? 'visible' : 'hidden'}
+        opacity={isReady ? 1 : 0}
+        transition="opacity 1s ease-in"
+      />
     </Box>
   )
 }
