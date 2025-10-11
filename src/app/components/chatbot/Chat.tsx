@@ -1,398 +1,511 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
-  Box,
-  Flex,
-  Heading,
-  Text,
-  VStack,
-  HStack,
-  Input,
-  IconButton,
-  List,
-  ListItem,
-  useBreakpointValue,
-  InputGroup,
-  InputLeftElement,
-  Tooltip,
-  Textarea,
-  useDisclosure,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  Spinner, // --- IMPORT SPINNER ---
+  Box, Flex, Heading, Text, VStack, HStack, Input, IconButton, List, ListItem,
+  useBreakpointValue, InputGroup, InputLeftElement, Tooltip, Textarea,
+  useDisclosure, Drawer, DrawerOverlay, DrawerContent, Spinner,
+  AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button,
 } from "@chakra-ui/react";
-import { FiSend, FiPlus, FiSearch, FiMessageSquare, FiMenu } from "react-icons/fi";
+import { FiSend, FiPlus, FiSearch, FiMessageSquare, FiMenu, FiTrash2, FiCode } from "react-icons/fi";
 import TextareaAutosize from "react-textarea-autosize";
-import ReactMarkdown from "react-markdown"; // --- IMPORT MARKDOWN RENDERER ---
-import remarkGfm from "remark-gfm"; // --- IMPORT GFM PLUGIN for tables, etc. ---
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-type Message = {
-  id: string;
-  role: "user" | "bot" | "system";
-  text: string;
-  createdAt?: number;
-};
+// --- Types ---
+export type Message = { id: string; role: "user" | "bot"; text: string; createdAt?: number };
+export type ChatSummary = { id: string; title: string; updatedAt?: number };
+export type Chat = ChatSummary & { messages?: Message[] };
 
-type Chat = {
-  id: string;
-  title: string;
-  messages: Message[];
-  updatedAt?: number;
-};
-
-// --- Added some markdown examples to initial state ---
-const initialStateArray: Chat[] = [
-  {
-    id: "c1",
-    title: "DP problems review",
-    messages: [
-      { id: "m1", role: "user", text: "Why is my MCM dp state arr[l-1] * arr[i] * arr[r]?", createdAt: Date.now() - 1000 * 60 * 60 },
-      { id: "m2", role: "bot", text: "Because the index boundaries of your array represent the dimensions of the matrices. For matrices `Ai...Aj`, the dimensions are `p(i-1) x p(i)` through `p(j-1) x p(j)`. The final multiplication cost is based on the dimensions of the resulting two sub-problem matrices.", createdAt: Date.now() - 1000 * 60 * 59 },
-    ],
-    updatedAt: Date.now() - 1000 * 60 * 59,
-  },
-  {
-    id: "c2",
-    title: "Linked list edge-cases",
-    messages: [
-      { id: "m3", role: "user", text: "How to remove zero-sum sublists?", createdAt: Date.now() - 1000 * 60 * 30 },
-      { id: "m4", role: "bot", text: "A great approach is to use a prefix sum map. Here's a quick rundown:\n\n1.  Initialize a `prefix_sum` to 0 and a hash map `sums` with `{0: dummy_node}`.\n2.  Iterate through the list.\n3.  Add the current node's value to `prefix_sum`.\n4.  If `prefix_sum` is in `sums`, it means a zero-sum sublist exists. You'll set `sums[prefix_sum].next` to the current node's `next`.\n5.  Otherwise, add `prefix_sum` to the map.\n\nThis lets you solve it in O(n) time!", createdAt: Date.now() - 1000 * 60 * 29 },
-    ],
-    updatedAt: Date.now() - 1000 * 60 * 29,
-  },
-];
-
-// --- Styles for rendered markdown ---
+// --- Enhanced Markdown Styles ---
 const markdownStyles = {
-  "h1, h2, h3, h4, h5, h6": {
-    my: 4,
-    fontWeight: "bold",
-  },
-  p: {
-    lineHeight: "tall",
-  },
+  p: { marginBottom: '1rem', lineHeight: '1.6' },
   a: {
-    color: "purple.300",
-    textDecoration: "underline",
+    color: 'purple.300',
+    textDecoration: 'underline',
+    _hover: { color: 'purple.200' }
   },
-  ul: {
-    my: 2,
-    ml: 6,
-    listStyleType: "disc",
+  ul: { paddingLeft: '20px', marginBottom: '1rem' },
+  ol: { paddingLeft: '20px', marginBottom: '1rem' },
+  // ✅ MODIFICATION: Reduced bottom margin for tighter list items
+  li: { marginBottom: '0.25rem' },
+  // ✅ NEW RULE: Targets paragraphs inside list items to remove extra spacing
+  'li > p': {
+    marginBottom: '0.25rem',
   },
-  ol: {
-    my: 2,
-    ml: 6,
-    listStyleType: "decimal",
+  h1: { fontSize: '2xl', fontWeight: 'bold', mb: 4, pb: 2, borderBottom: '1px solid', borderColor: 'gray.700' },
+  h2: { fontSize: 'xl', fontWeight: 'bold', mb: 3, pb: 1, borderBottom: '1px solid', borderColor: 'gray.700' },
+  h3: { fontSize: 'lg', fontWeight: 'bold', mb: 3 },
+  blockquote: {
+    borderLeft: '4px solid',
+    borderColor: 'gray.600',
+    pl: 4,
+    my: 4,
+    color: 'gray.400',
+    fontStyle: 'italic',
   },
-  li: {
-    mb: 1,
+  hr: { my: 6, borderColor: 'gray.700' },
+  table: { width: '100%', my: 4, borderCollapse: 'collapse' },
+  th: { border: '1px solid', borderColor: 'gray.600', p: 2, fontWeight: 'bold', textAlign: 'left', bg: 'gray.700' },
+  td: { border: '1px solid', borderColor: 'gray.600', p: 2 },
+  'tr:nth-of-type(odd) td': {
+    bg: 'rgba(255, 255, 255, 0.02)'
   },
   code: {
-    bg: "#0f1114",
-    color: "yellow.200",
-    px: "0.4em",
+    bg: "rgba(0,0,0,0.3)",
+    px: "0.5em",
     py: "0.2em",
-    borderRadius: "md",
+    rounded: "md",
     fontFamily: "monospace",
     fontSize: "sm",
   },
   pre: {
     bg: "#0f1114",
     p: 4,
-    borderRadius: "md",
+    rounded: "md",
     overflowX: "auto",
     my: 4,
-  },
-  "pre > code": {
-    all: "unset", // Reset child code styles within a pre block
-  },
-  blockquote: {
-    borderLeft: "4px solid",
-    borderColor: "gray.600",
-    pl: 4,
-    color: "gray.400",
-    fontStyle: "italic",
-    my: 4,
-  },
-  table: {
-    width: "full",
-    borderCollapse: "collapse",
-  },
-  th: {
-    border: "1px solid",
-    borderColor: "gray.600",
-    p: 2,
-    textAlign: "left",
-    bg: "#1f1f25"
-  },
-  td: {
-    border: "1px solid",
-    borderColor: "gray.600",
-    p: 2,
-  },
+    border: '1px solid',
+    borderColor: 'gray.700'
+  }
 };
+// =================================================================
+// === API SERVICE ===============================================
+// =================================================================
 
+async function sendMessage(message: string, chatId?: string): Promise<{ reply: string, chatId: string, title?: string }> {
+  try {
+    const response = await fetch('/api/chatbot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message.trim(), chatId }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'The API call failed.');
+    return data;
+  } catch (error) { console.error("Error in sendMessage service:", error); throw error; }
+}
 
-// Main Component
-export default function ChatPage() {
-  const [chats, setChats] = useState<{ byId: Record<string, Chat>; allIds: string[] }>(() => {
-    const byId = initialStateArray.reduce((acc, chat) => {
-      acc[chat.id] = chat;
-      return acc;
-    }, {} as Record<string, Chat>);
-    const allIds = initialStateArray.map(chat => chat.id).sort((a, b) => (byId[b].updatedAt ?? 0) - (byId[a].updatedAt ?? 0));
-    return { byId, allIds };
-  });
+async function getChats(): Promise<ChatSummary[]> {
+  try {
+    const response = await fetch('/api/chats');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch chats.');
+    return data;
+  } catch (error) { console.error("Error in getChats service:", error); throw error; }
+}
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(chats.allIds[0] ?? null);
-  const [input, setInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // --- NEW LOADING STATE ---
-  
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const isMobile = useBreakpointValue({ base: true, md: false });
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+async function getChatMessages(chatId: string): Promise<{ messages: Message[] }> {
+  try {
+    const response = await fetch(`/api/chats/${chatId}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch messages.');
+    return data;
+  } catch (error) { console.error("Error in getChatMessages service:", error); throw error; }
+}
 
-  const selectedChat = useMemo(() => (selectedChatId ? chats.byId[selectedChatId] : null), [chats.byId, selectedChatId]);
+async function deleteChat(chatId: string): Promise<{ message: string }> {
+  try {
+    const response = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to delete chat.');
+    return data;
+  } catch (error) { console.error("Error in deleteChat service:", error); throw error; }
+}
 
-  const filteredChats = useMemo(() => {
-    const allChatsInOrder = chats.allIds.map(id => chats.byId[id]);
-    if (!search.trim()) {
-      return allChatsInOrder; 
-    }
-    
-    const q = search.toLowerCase();
-    return allChatsInOrder.filter((c) => 
-      c.title.toLowerCase().includes(q) || 
-      c.messages.some((m) => m.text.toLowerCase().includes(q))
-    );
-  }, [chats.allIds, chats.byId, search]);
-  
-  // Effect to scroll to the bottom of the messages list
+// =================================================================
+// === CHILD COMPONENTS ==========================================
+// =================================================================
+
+const MessageItem = React.memo(({ message }: { message: Message }) => {
+  const isUser = message.role === "user";
+  return (
+    <Flex justify={isUser ? "flex-end" : "flex-start"} w="full">
+      <Box
+        bg={isUser ? "purple.600" : "transparent"}
+        borderWidth="1px"
+        borderColor={isUser ? "purple.600" : "#2d2d38"}
+        color="white"
+        px={4}
+        py={2}
+        rounded="lg"
+        maxW={{ base: "90%", md: "70%" }}
+      >
+        <Box sx={markdownStyles}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+        </Box>
+      </Box>
+    </Flex>
+  );
+});
+MessageItem.displayName = 'MessageItem';
+
+const ChatMessageArea = ({ chat, isLoading }: { chat: Chat | null, isLoading: boolean }) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedChat?.messages, isLoading]);
+  }, [chat?.messages]);
 
-  function createNewChat() {
-    const id = `c-${Date.now()}`;
-    const title = `New Chat`;
-    const newChat: Chat = { id, title, messages: [], updatedAt: Date.now() };
-    
-    setChats((prev) => ({
-      byId: { ...prev.byId, [id]: newChat },
-      allIds: [id, ...prev.allIds],
-    }));
 
-    setSelectedChatId(id);
-    onClose();
+  if (!chat && !isLoading) {
+    return (
+      <VStack justify="center" h="full" spacing={6} textAlign="center" p={8}>
+        {/* A styled, thematic icon */}
+        <Box
+          display="inline-block"
+          p={5}
+          bg="rgba(128, 90, 213, 0.1)" // Faint purple background
+          borderRadius="full"
+        >
+          <FiCode size="52px" color="#9F7AEA" /> {/* Themed icon with theme color */}
+        </Box>
+
+        {/* A bolder heading */}
+        <Heading size="xl" color="gray.200">
+          Algo Chat
+        </Heading>
+
+        {/* Simple, instructive subtext */}
+        <Text color="gray.400" maxW="md">
+          Start a new conversation to analyze and optimize your code.
+        </Text>
+      </VStack>
+    );
   }
 
-  function handleSelectChat(id: string) {
-    setSelectedChatId(id);
-    onClose();
-  }
+  return (
+    <VStack spacing={4} align="stretch" h="full">
+      {chat?.messages?.map((msg) => <MessageItem key={msg.id} message={msg} />)}
+      {isLoading && (
+        <HStack spacing={3} alignSelf="flex-start">
+          <Spinner size="sm" color="purple.300" />
+          <Text fontSize="sm" color="gray.400">Thinking...</Text>
+        </HStack>
+      )}
+      <div ref={messagesEndRef} />
+    </VStack>
+  );
+};
 
-  // --- UPDATED SEND MESSAGE FUNCTION ---
-  async function sendMessageToSelectedChat(text: string) {
-    if (!selectedChatId || !text.trim() || isLoading) return;
+const MessageInput = React.memo(({ onSendMessage, isLoading, selectedChat }: { onSendMessage: (message: string) => void; isLoading: boolean; selectedChat: Chat | null; }) => {
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    const userMsg: Message = { id: `u-${Date.now()}`, role: "user", text: text.trim(), createdAt: Date.now() };
-    
-    // Optimistic UI update
-    setChats(prev => {
-      const currentChat = prev.byId[selectedChatId];
-      const isNewChat = currentChat.messages.length === 0;
-      const newTitle = isNewChat ? text.substring(0, 40) + (text.length > 40 ? "..." : "") : currentChat.title;
-      
-      const updatedChat: Chat = { 
-        ...currentChat, 
-        title: newTitle, 
-        messages: [...currentChat.messages, userMsg], 
-        updatedAt: Date.now() 
-      };
-      
-      const newAllIds = [selectedChatId, ...prev.allIds.filter(id => id !== selectedChatId)];
-
-      return {
-        byId: { ...prev.byId, [selectedChatId]: updatedChat },
-        allIds: newAllIds,
-      };
-    });
-
-    setInput("");
-    setIsLoading(true); // --- START LOADING ---
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: text.trim() }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'The API call failed.');
-      }
-
-      const data = await response.json();
-      const botMsg: Message = { id: `b-${Date.now()}`, role: "bot", text: data.reply, createdAt: Date.now() };
-
-      setChats(prev => {
-        const currentChat = prev.byId[selectedChatId!];
-        // Replace user message with itself to trigger re-render, then add bot message
-        const messages = currentChat.messages.slice(0, -1).concat(userMsg, botMsg);
-        const updatedChat: Chat = { 
-            ...currentChat, 
-            messages: messages,
-            updatedAt: Date.now() 
-        };
-        return {
-          byId: { ...prev.byId, [selectedChatId!]: updatedChat },
-          allIds: prev.allIds,
-        };
-      });
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      console.error("Failed to send message:", errorMessage);
-      const errorMsg: Message = { id: `e-${Date.now()}`, role: "bot", text: `Sorry, an error occurred: ${errorMessage}`, createdAt: Date.now() };
-      
-      setChats(prev => {
-        const currentChat = prev.byId[selectedChatId!];
-        const updatedChat: Chat = { 
-            ...currentChat, 
-            messages: [...currentChat.messages, errorMsg], 
-        };
-        return {
-          byId: { ...prev.byId, [selectedChatId!]: updatedChat },
-          allIds: prev.allIds,
-        };
-      });
-    } finally {
-        setIsLoading(false); // --- STOP LOADING ---
+  const handleSend = () => {
+    if (input.trim() && !isLoading) {
+      onSendMessage(input.trim());
+      setInput("");
     }
-  }
+  };
 
-  // Reusable sidebar content component (NO CHANGES)
-  const sidebarContent = (
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedChat) {
+      inputRef.current?.focus();
+    }
+  }, [selectedChat]);
+
+  return (
+    <InputGroup size="lg">
+      <Textarea
+        as={TextareaAutosize}
+        ref={inputRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyPress}
+        placeholder="Type your message here..."
+        minRows={1}
+        maxRows={6}
+        pr="4.5rem"
+        bg="#0f1114"
+        borderColor="#26262a"
+        _hover={{ borderColor: "purple.400" }}
+        _focus={{ borderColor: "purple.400", boxShadow: "0 0 0 1px var(--chakra-colors-purple-400)" }}
+        isDisabled={isLoading}
+      />
+      <IconButton
+        aria-label="Send message"
+        icon={<FiSend />}
+        onClick={handleSend}
+        isLoading={isLoading}
+        isDisabled={!input.trim()} 
+        position="absolute"
+        right="0.5rem"
+        bottom="8px"
+        size="md"
+        colorScheme="purple"
+        variant="ghost"
+      />
+    </InputGroup>
+  );
+});
+MessageInput.displayName = 'MessageInput';
+
+const ChatSidebar = React.memo(({ chats, selectedChatId, onSelectChat, onCreateNewChat, onDeleteChat }: {
+  chats: Chat[];
+  selectedChatId: string | null;
+  onSelectChat: (id: string) => void;
+  onCreateNewChat: () => void;
+  onDeleteChat: (id: string) => void;
+}) => {
+  const [search, setSearch] = useState("");
+  const filteredChats = useMemo(() => {
+    if (!search.trim()) return chats;
+    const q = search.toLowerCase();
+    return chats.filter(c => c.title.toLowerCase().includes(q));
+  }, [chats, search]);
+
+  return (
     <VStack h="full" align="stretch" spacing={4}>
-      <HStack justify="space-between">
-        <Heading size="md" color="purple.200">Chats</Heading>
-        <Tooltip label="New Chat"><IconButton aria-label="new chat" icon={<FiPlus />} onClick={createNewChat} size="sm" variant="ghost" /></Tooltip>
-      </HStack>
-      <InputGroup>
-        <InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement>
-        <Input placeholder="Search chats" value={search} onChange={(e) => setSearch(e.target.value)} bg="#0f1114" borderColor="#26262a" />
-      </InputGroup>
+      <HStack justify="space-between"><Heading size="md" color="purple.200">Chats</Heading><Tooltip label="New Chat"><IconButton aria-label="new chat" icon={<FiPlus />} onClick={onCreateNewChat} size="sm" variant="ghost" /></Tooltip></HStack>
+      <InputGroup><InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement><Input placeholder="Search chats" value={search} onChange={(e) => setSearch(e.target.value)} bg="#0f1114" borderColor="#26262a" /></InputGroup>
       <List spacing={2} flex={1} overflowY="auto" pr={2}>
         {filteredChats.map((c) => (
-          <ListItem key={c.id} onClick={() => handleSelectChat(c.id)} cursor="pointer" bg={c.id === selectedChatId ? "rgba(128,90,213,0.12)" : "transparent"} p={3} rounded="md" _hover={{ bg: "rgba(128,90,213,0.08)" }} transition="background 0.2s ease-in-out">
-            <HStack align="start">
-              <Box mt={1} color={c.id === selectedChatId ? "purple.300" : "gray.500"}><FiMessageSquare /></Box>
-              <VStack align="start" spacing={0} flex={1} overflow="hidden">
-                <Text fontWeight="semibold" isTruncated w="full">{c.title}</Text>
-                <Text fontSize="sm" color="gray.400" isTruncated w="full">{c.messages.length > 0 ? c.messages[c.messages.length-1].text : "No messages yet"}</Text>
-              </VStack>
+          <ListItem
+            key={c.id}
+            onClick={() => onSelectChat(c.id)}
+            cursor="pointer"
+            bg={c.id === selectedChatId ? "rgba(128,90,213,0.12)" : "transparent"}
+            p={3}
+            rounded="md"
+            _hover={{ bg: c.id !== selectedChatId ? "rgba(128,90,213,0.08)" : "rgba(128,90,213,0.12)" }}
+            position="relative"
+            sx={{ "&:hover .delete-button": { opacity: 1 } }}
+          >
+            <HStack align="start" justify="space-between">
+              <HStack align="start" flex={1} overflow="hidden">
+                <Box mt={1} color={c.id === selectedChatId ? "purple.300" : "gray.500"}><FiMessageSquare /></Box>
+                <VStack align="start" spacing={0} flex={1} overflow="hidden">
+                  <Text fontWeight="semibold" isTruncated w="full">{c.title}</Text>
+                </VStack>
+              </HStack>
+              <Tooltip label="Delete Chat" placement="top">
+                <IconButton
+                  aria-label="Delete chat"
+                  icon={<FiTrash2 />}
+                  size="xs"
+                  variant="ghost"
+                  color="gray.400"
+                  className="delete-button"
+                  opacity={0}
+                  transition="opacity 0.2s"
+                  _hover={{ bg: "red.500", color: "white" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteChat(c.id);
+                  }}
+                />
+              </Tooltip>
             </HStack>
           </ListItem>
         ))}
       </List>
     </VStack>
   );
+});
+ChatSidebar.displayName = 'ChatSidebar';
+
+// =================================================================
+// === MAIN COMPONENT ============================================
+// =================================================================
+export default function ChatPage() {
+  const [chats, setChats] = useState<{ byId: Record<string, Chat>; allIds: string[] }>({ byId: {}, allIds: [] });
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarLoading, setIsSidebarLoading] = useState(true);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+  const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    async function fetchInitialChats() {
+      setIsSidebarLoading(true);
+      try {
+        const chatList = await getChats();
+        const byId = chatList.reduce((acc, chat) => { acc[chat.id] = chat; return acc; }, {} as Record<string, Chat>);
+        const allIds = chatList.map(chat => chat.id);
+        setChats({ byId, allIds });
+      } catch (error) { console.error("Could not load chat history:", error); }
+      finally { setIsSidebarLoading(false); }
+    }
+    fetchInitialChats();
+  }, []);
+
+  const orderedChats = useMemo(() => chats.allIds.map(id => chats.byId[id]), [chats.allIds, chats.byId]);
+  const selectedChat = useMemo(() => (selectedChatId ? chats.byId[selectedChatId] : null), [chats.byId, selectedChatId]);
+
+  const handleCreateNewChat = useCallback(() => { setSelectedChatId(null); onClose(); }, [onClose]);
+
+  const handleSelectChat = useCallback(async (id: string) => {
+    if (id === selectedChatId) return;
+    setSelectedChatId(id);
+    if (isMobile) onClose();
+
+    if (!chats.byId[id]?.messages) {
+      setIsLoading(true);
+      try {
+        const { messages } = await getChatMessages(id);
+        setChats(prev => ({
+          ...prev,
+          byId: { ...prev.byId, [id]: { ...prev.byId[id], messages } }
+        }));
+      } catch (error) {
+        console.error("Failed to load chat messages:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [chats.byId, onClose, selectedChatId, isMobile]);
+
+  const handleSendMessage = useCallback(async (messageText: string) => {
+    if (!messageText.trim()) return;
+    setIsLoading(true);
+
+    const currentChatId = selectedChatId;
+    const userMessage: Message = { id: `user-${Date.now()}`, role: "user", text: messageText };
+
+    if (currentChatId) {
+      setChats(prev => {
+        const currentMessages = prev.byId[currentChatId]?.messages || [];
+        return {
+          ...prev,
+          byId: {
+            ...prev.byId,
+            [currentChatId]: {
+              ...prev.byId[currentChatId],
+              messages: [...currentMessages, userMessage],
+            },
+          },
+        };
+      });
+    }
+
+    try {
+      const { reply, chatId: newChatId, title } = await sendMessage(messageText, currentChatId ?? undefined);
+      const botMessage: Message = { id: `bot-${Date.now()}`, role: 'bot', text: reply };
+
+      setChats(prev => {
+        const newById = { ...prev.byId };
+        const chatToUpdate = newById[newChatId] || { id: newChatId, title: "" };
+
+        const baseMessages = currentChatId === newChatId
+          ? (chatToUpdate.messages || [])
+          : [userMessage];
+
+        newById[newChatId] = {
+          ...chatToUpdate,
+          title: title || chatToUpdate.title || "New Chat",
+          messages: [...baseMessages, botMessage],
+        };
+
+        const newAllIds = [newChatId, ...prev.allIds.filter(id => id !== newChatId)];
+
+        return { byId: newById, allIds: newAllIds };
+      });
+
+      if (selectedChatId !== newChatId) {
+        setSelectedChatId(newChatId);
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedChatId]);
+
+  const handleOpenDeleteDialog = useCallback((id: string) => {
+    setChatToDelete(id);
+    onAlertOpen();
+  }, [onAlertOpen]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!chatToDelete) return;
+
+    const chatToDeleteId = chatToDelete;
+    onAlertClose();
+    setChatToDelete(null);
+
+    try {
+      await deleteChat(chatToDeleteId);
+      setChats(prev => {
+        const newById = { ...prev.byId };
+        delete newById[chatToDeleteId];
+        const newAllIds = prev.allIds.filter(id => id !== chatToDeleteId);
+        return { byId: newById, allIds: newAllIds };
+      });
+      if (selectedChatId === chatToDeleteId) {
+        setSelectedChatId(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  }, [chatToDelete, selectedChatId, onAlertClose]);
+
+  const sidebarComponent = (
+    isSidebarLoading ?
+      <VStack justify="center" h="full"><Spinner color="purple.300" /></VStack> :
+      <ChatSidebar
+        chats={orderedChats}
+        selectedChatId={selectedChatId}
+        onSelectChat={handleSelectChat}
+        onCreateNewChat={handleCreateNewChat}
+        onDeleteChat={handleOpenDeleteDialog}
+      />
+  );
 
   return (
-    <Flex h="calc(100vh - 70px)" bg="#0b0b0f" color="white" overflow="hidden">
-      {isMobile ? (
-        <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
-          <DrawerOverlay />
-          <DrawerContent bg="#111114" color="white" p={4}>
-            {sidebarContent}
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Box w="320px" bg="#111114" p={4} borderRight="1px solid" borderColor="#1f1f25" flexShrink={0}>
-          {sidebarContent}
-        </Box>
-      )}
-      <Flex direction="column" flex={1} bg="#111114" minW={0}>
-        <Flex align="center" p={4} borderBottom="1px solid" borderColor="#1f1f25" h="70px">
-          {isMobile && (
-            <Tooltip label="Show Chats" placement="bottom">
-              <IconButton aria-label="Show chats" icon={<FiMenu />} onClick={onOpen} variant="ghost" mr={2} />
-            </Tooltip>
-          )}
-          <Heading size="md" color="purple.200">{selectedChat ? selectedChat.title : "Select a Chat"}</Heading>
+    <>
+      <Flex h="calc(100vh - 70px)" bg="#0b0b0f" color="white" overflow="hidden">
+        {isMobile ? (
+          <Drawer placement="left" onClose={onClose} isOpen={isOpen}><DrawerOverlay /><DrawerContent bg="#111114" color="white" p={4}>{sidebarComponent}</DrawerContent></Drawer>
+        ) : (
+          <Box w="320px" bg="#111114" p={4} borderRight="1px solid" borderColor="#1f1f25" flexShrink={0}>{sidebarComponent}</Box>
+        )}
+        <Flex direction="column" flex={1} bg="#111114" minW={0}>
+          <Flex align="center" p={4} borderBottom="1px solid" borderColor="#1f1f25" h="70px">
+            {isMobile && <IconButton aria-label="Show chats" icon={<FiMenu />} onClick={onOpen} variant="ghost" mr={2} />}
+            <Heading size="md" color="purple.200">{selectedChat ? selectedChat.title : "New Chat"}</Heading>
+          </Flex>
+          <Box flex={1} overflowY="auto" p={6}><ChatMessageArea chat={selectedChat} isLoading={isLoading} /></Box>
+          <Box p={6} bg="#111114"><MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} selectedChat={selectedChat} /></Box>
         </Flex>
-        <Box flex={1} overflowY="auto" p={6}>
-          <VStack align="stretch" spacing={4}>
-            {selectedChat ? (
-              <>
-                {selectedChat.messages.map((m) => (
-                  <Flex key={m.id} alignSelf={m.role === "user" ? "flex-end" : "flex-start"} w="fit-content" maxW={{ base: "90%", md: "70%" }}>
-                    <Box bg={m.role === "user" ? "purple.600" : "#0f1113"} color="white" px={4} py={3} rounded="lg">
-                      {m.role === 'bot' ? (
-                          <Box sx={markdownStyles}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
-                          </Box>
-                      ) : (
-                        <Text whiteSpace="pre-wrap" wordBreak="break-word">{m.text}</Text>
-                      )}
-                      <Text fontSize="xs" color="gray.400" textAlign="right" suppressHydrationWarning={true} mt={2}>
-                        {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                      </Text>
-                    </Box>
-                  </Flex>
-                ))}
-                {/* --- RENDER LOADING INDICATOR --- */}
-                {isLoading && (
-                   <Flex alignSelf="flex-start" w="fit-content" maxW={{ base: "90%", md: "70%" }}>
-                     <HStack spacing={3} bg="#0f1113" color="white" px={4} py={3} rounded="lg">
-                        <Spinner size="sm" color="purple.300" />
-                        <Text fontSize="md" fontStyle="italic">Thinking...</Text>
-                     </HStack>
-                   </Flex>
-                )}
-                <div ref={messagesEndRef} />
-              </>
-            ) : (
-              <VStack justify="center" h="full" spacing={4} color="gray.500">
-                <FiMessageSquare size="48px" />
-                <Heading size="md">No Chat Selected</Heading>
-                <Text>Choose a conversation from the sidebar or start a new one.</Text>
-              </VStack>
-            )}
-          </VStack>
-        </Box>
-        <Box p={6} bg="#111114">
-          <HStack spacing={3} align="flex-end">
-            <Textarea 
-              as={TextareaAutosize} 
-              value={input} 
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessageToSelectedChat(input);
-                }
-              }}
-              placeholder={selectedChat ? `Message ${selectedChat.title}` : "Select a chat to start"} 
-              bg="#0f1114" 
-              borderColor="#26262a" 
-              _placeholder={{ color: "gray.500" }} 
-              isDisabled={!selectedChat || isLoading} 
-              minRows={1} 
-              maxRows={6} 
-              resize="none" 
-            />
-            <IconButton aria-label="send" icon={<FiSend />} onClick={() => sendMessageToSelectedChat(input)} colorScheme="purple" size="lg" isDisabled={!selectedChat || !input.trim()} isLoading={isLoading} />
-          </HStack>
-        </Box>
       </Flex>
-    </Flex>
+
+      <AlertDialog
+        isOpen={isAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onAlertClose}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="#1f1f25" color="white" borderColor="#26262a">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Chat
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              Are you sure? This will permanently delete this chat and all its messages.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onAlertClose} variant="ghost">
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleConfirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
 }
